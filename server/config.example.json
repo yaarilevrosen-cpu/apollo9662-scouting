@@ -1,0 +1,8 @@
+{
+  "public_url": "https://REPLACE-WITH-YOUR-TUNNEL-ADDRESS",
+  "manager_password": "REPLACE-ME",
+  "team_join_code": "REPLACE-ME",
+  "pit_read_token": "REPLACE-ME",
+  "db_path": "data/scouting.db",
+  "backup_dir": "backups/"
+}

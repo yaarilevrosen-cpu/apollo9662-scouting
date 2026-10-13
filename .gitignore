@@ -1,0 +1,13 @@
+# הגדרות מקומיות וסודות – לעולם לא במאגר
+config.local.json
+.env
+*.env
+# נתוני סקאוטינג, מסדי נתונים וגיבויים – לעולם לא במאגר
+data/
+backups/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.csv
+exports/
