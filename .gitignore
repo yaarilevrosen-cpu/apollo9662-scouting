@@ -11,3 +11,4 @@ backups/
 *.sqlite
 *.csv
 exports/
+pc-test.html

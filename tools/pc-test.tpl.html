@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>בדיקת סקאוטינג על המחשב</title>
+<style>
+:root{--bg:#eef1ee;--ink:#1b1f1c;--muted:#5d655f;--line:#d5dad6;--honey:#E0A325;--bad:#c94a3d;--good:#2f8a5b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+h1{font-size:18px;margin:0}header .sp{flex:1}
+button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer}
+button.pri{background:var(--ink);color:#fff;border-color:transparent}
+.hint{color:var(--muted);font-size:13px}
+.phones{display:flex;gap:22px;padding:18px;overflow-x:auto;align-items:flex-start}
+.phone{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;align-items:center;gap:8px}
+.bar b{font-size:15px}.bar .sp{flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--good)}.off .dot{background:var(--bad)}
+.frame{width:390px;height:760px;border:10px solid #1b1f1c;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 8px 24px #0002}
+.frame.wide{width:900px;border-radius:14px;border-width:6px}
+iframe{width:100%;height:100%;border:0;display:block}
+details{margin:0 18px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:700}
+pre{direction:ltr;text-align:left;font-size:12px;max-height:420px;overflow:auto;background:#f6f7f6;padding:10px;border-radius:8px}
+label.sw{display:inline-flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
+</style></head><body>
+<header>
+  <h1>בדיקת סקאוטינג על המחשב</h1>
+  <span class="hint">שלושה "טלפונים" על מאגר משותף מדומה. מה שנשמר באחד מופיע מיד אצל השאר.</span>
+  <span class="sp"></span>
+  <button id="wide">מנהל במסך רחב</button>
+  <button id="reload">טען מחדש את כולם</button>
+  <button id="reset" class="pri">אפס נתונים</button>
+</header>
+<div class="phones" id="phones"></div>
+<details><summary>מה נשמר במאגר עכשיו</summary><pre id="dump"></pre></details>
+
+<script id="appsrc" type="text/plain">__APP_B64__</script>
+<script>
+/* ── מאגר משותף מדומה, בחלון הראשי ── */
+const APP=new TextDecoder().decode(Uint8Array.from(atob(document.getElementById("appsrc").textContent.trim()),c=>c.charCodeAt(0)));
+const SAVE="bbz-harness-store";
+const T=[90001,90002,90003,90004,90005,90006,90007,90008,90009,90010,90011,90012];
+function seed(){
+  const sched={};let k=0;for(let m=1;m<=12;m++){const pool=[...T,9662].sort(()=>Math.random()-.5).slice(0,4);sched[m]=pool;}
+  const now=Date.now();
+  return {
+    "control/main":{cur:1,event:"תחרות בדיקה",ev:"",sched,assign:{scout1:"r1",scout2:"b1"},pitAssign:{},scores:{},ignore:{},kudos:{},board:[],boardAt:0},
+    "entries/scout1":{rows:{},pit:{},ts:now,profile:{nick:"נועה",color:1,motto:"",joined:now}},
+    "entries/scout2":{rows:{},pit:{},ts:now,profile:{nick:"איתי",color:2,motto:"",joined:now}},
+    "teams/90001":{num:90001,name:"דרקונים"},"teams/90002":{num:90002,name:"ניצוץ"},"teams/90003":{num:90003,name:"אורקה"}
+  };
+}
+let store;try{store=JSON.parse(localStorage.getItem(SAVE))||seed();}catch(e){store=seed();}
+const subs=[];const offline={};
+const clone=v=>JSON.parse(JSON.stringify(v));
+function persist(){try{localStorage.setItem(SAVE,JSON.stringify(store));}catch(e){}document.getElementById("dump").textContent=JSON.stringify(store,null,1);}
+function deep(a,b){for(const [k,v] of Object.entries(b)){if(v&&typeof v==="object"&&!Array.isArray(v)&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))deep(a[k],v);else a[k]=clone(v);}}
+const snapDoc=p=>({exists:p in store,data:()=>clone(store[p]||{}),metadata:{fromCache:false}});
+const snapCol=c=>({docs:Object.keys(store).filter(k=>k.startsWith(c+"/")&&k.split("/").length===2).map(k=>({id:k.slice(c.length+1),data:()=>clone(store[k])})),metadata:{fromCache:false}});
+function notify(){persist();setTimeout(()=>{for(const s of subs){if(offline[s.who]||!s.alive())continue;try{s.cb(s.kind==="doc"?snapDoc(s.path):snapCol(s.path));}catch(e){}}},30);}
+/* כללי הרשאות כמו בארטיפקט: סקאוטר כותב רק את המסמך שלו; control ו־teams רק למנהל */
+function canWrite(who,mgr,p){if(mgr)return true;return p==="entries/"+who;}
+window.HUB={
+  make(who,mgr,frame){
+    const alive=()=>document.body.contains(frame);
+    const guard=p=>{if(offline[who])throw {code:"unavailable",message:"אין רשת"};if(!canWrite(who,mgr,p))throw {code:"invalid_argument",message:"אין הרשאה"};};
+    const db={
+      doc:p=>({onSnapshot(cb,err){subs.push({who,kind:"doc",path:p,cb,alive});setTimeout(()=>{if(!offline[who])cb(snapDoc(p));},30);return()=>{};},
+        async set(v){await new Promise(r=>setTimeout(r,120));guard(p);store[p]=clone(v);notify();},
+        async update(v){await new Promise(r=>setTimeout(r,120));guard(p);if(!(p in store))throw {code:"not_found"};deep(store[p],v);notify();}}),
+      collection:c=>({onSnapshot(cb,err){if(c==="entries"&&!mgr){setTimeout(()=>err&&err({code:"permission_denied"}),30);return()=>{};}
+        subs.push({who,kind:"col",path:c,cb,alive});setTimeout(()=>{if(!offline[who])cb(snapCol(c));},30);return()=>{};}})
+    };
+    const user={isOwner:async()=>mgr,id:async()=>who,name:async()=>({scout1:"נועה",scout2:"איתי",mgr:"יערי"})[who]||who,can:async()=>true,
+      profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:({scout1:"נועה",scout2:"איתי",mgr:"יערי"})[i]||i}]))};
+    return {use:async k=>k==="db"?db:k==="user"?user:null};
+  }
+};
+/* ── הטלפונים ── */
+const PH=[["scout1","סקאוטר · נועה",false],["scout2","סקאוטר · איתי",false],["mgr","מנהל · יערי",true]];
+let wide=false;
+function boot(){
+  subs.length=0;const box=document.getElementById("phones");box.innerHTML="";
+  for(const [who,label,mgr] of PH){
+    const w=document.createElement("div");w.className="phone"+(offline[who]?" off":"");
+    w.innerHTML=`<div class="bar"><span class="dot"></span><b>${label}</b><span class="sp"></span><label class="sw"><input type="checkbox" ${offline[who]?"checked":""}> בלי רשת</label></div><div class="frame${mgr&&wide?" wide":""}"></div>`;
+    const f=document.createElement("iframe");f.title=label;
+    /* כל טלפון מקבל זיכרון מקומי משלו, כדי שטיוטות ושליחות ממתינות לא יתערבבו */
+    const pre=`<script>(function(){const H=parent.HUB;window.claude=H.make(${JSON.stringify(who)},${mgr},frameElement);
+      const P=${JSON.stringify("ph-"+who+":")};const ls=window.localStorage;const k=x=>P+x;
+      const fake={getItem:x=>ls.getItem(k(x)),setItem:(x,v)=>ls.setItem(k(x),v),removeItem:x=>ls.removeItem(k(x))};
+      try{Object.defineProperty(window,"localStorage",{value:fake,configurable:true});}catch(e){}})();<\/script>`;
+    f.srcdoc=APP.replace("<head>","<head>"+pre);
+    w.querySelector(".frame").appendChild(f);
+    w.querySelector("input").addEventListener("change",e=>{offline[who]=e.target.checked;w.classList.toggle("off",offline[who]);
+      if(!offline[who]){try{f.contentWindow.dispatchEvent(new Event("online"));}catch(_){}notify();}});
+    box.appendChild(w);
+  }
+  persist();
+}
+document.getElementById("reset").onclick=()=>{store=seed();for(const k of Object.keys(localStorage))if(k.startsWith("ph-"))localStorage.removeItem(k);boot();};
+document.getElementById("reload").onclick=boot;
+document.getElementById("wide").onclick=e=>{wide=!wide;e.target.textContent=wide?"מנהל במסך טלפון":"מנהל במסך רחב";boot();};
+boot();
+</script>
+</body></html>
