@@ -251,6 +251,7 @@ textarea.inp{width:100%;min-height:84px;resize:vertical;font-family:var(--f-body
 .pills{display:flex;gap:6px;flex-wrap:wrap}
 .pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-family:var(--f-num);font-size:13px;min-height:44px}
 .pill.on{background:var(--ink);color:var(--surface);border-color:transparent}
+#v-pit .pill{font-family:inherit;font-weight:700}#v-pit .seg{flex-wrap:wrap}#v-pit .block{margin-top:12px}
 .minis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 @media (max-width:960px){.minis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:460px){.minis{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -511,6 +512,7 @@ svg .he{font-family:var(--f-body)}
   <section class="view" id="v-join" role="tabpanel" aria-labelledby="tab-join" hidden></section>
   <section class="view" id="v-profile" role="tabpanel" aria-labelledby="tab-profile" hidden></section>
   <section class="view" id="v-crew" role="tabpanel" aria-labelledby="tab-crew" hidden></section>
+  <section class="view" id="v-pit" role="tabpanel" aria-labelledby="tab-pit" hidden></section>
 
   <section class="view" id="v-team" role="tabpanel" aria-labelledby="tab-team" hidden>
     <div class="panel">
@@ -660,6 +662,7 @@ function readControl(v){
   c.kudos={};for(const [u,n] of Object.entries(v.kudos||{}))c.kudos[String(u).slice(0,80)]=Math.max(0,Math.min(999,Math.round(+n||0)));
   c.board=(Array.isArray(v.board)?v.board:[]).slice(0,10).map(b=>({uid:String(b?.uid||"").slice(0,80),nick:String(b?.nick||"").slice(0,20),color:Math.max(0,Math.min(5,Math.round(+b?.color||0))),xp:Math.max(0,Math.round(+b?.xp||0)),records:Math.max(0,Math.round(+b?.records||0)),level:String(b?.level||"").slice(0,20)}));
   c.boardAt=+v.boardAt||0;
+  c.pitAssign={};for(const [u,ts] of Object.entries(v.pitAssign||{})){if(!Array.isArray(ts))continue;const a=[...new Set(ts.map(x=>N(x,99999)).filter(Boolean))].slice(0,300);if(a.length)c.pitAssign[String(u).slice(0,80)]=a;}
   const pl=v.playoff;c.playoff=pl&&[2,4,6,8].includes(+pl.n)?{n:+pl.n,al:(Array.isArray(pl.al)?pl.al:[]).slice(0,8).map(x=>Array.isArray(x)?[N(x[0],99999),N(x[1],99999)]:[0,0])}:null;
   return c;
 }
@@ -801,7 +804,20 @@ function makeDemo(){
   }
   const profiles={demo1:{nick:"נועה",color:1,motto:"אף היפוך לא בורח לי",joined:now-86400000*20},demo2:{nick:"איתי",color:2,motto:"",joined:now-86400000*15},demo3:{nick:"מאיה",color:3,motto:"רואה הכול מהיציע",joined:now-86400000*12},demo4:{nick:"עומר",color:4,motto:"שעון ביד, עין על הרובוט",joined:now-86400000*9},demo5:{nick:"תמר",color:5,motto:"",joined:now-86400000*4}};
   for(const e of entries){if(rnd()<.6)e.clk=true;}
-  return {entries,names,sched,cur:23,scores:sc,profiles,kudos:{demo1:2,demo3:1}};
+  /* פיט להדגמה: חמישה סקאוטרים, שלוש קבוצות לכל אחד */
+  const pick=(o)=>o[Math.floor(rnd()*o.length)][0];
+  const pit=[];const pitAssign={};const pt=teams.filter(t=>t!==9662);
+  pt.forEach((t,i)=>{const by="demo"+(i%5+1);(pitAssign[by]=pitAssign[by]||[]).push(t);
+    const r=rnd();if(r<.15)return;const k=skill[t];
+    const base={team:t,ev:"",id:"p"+t,by,ts:now-(40-i)*60000,retry:r<.25};
+    if(!base.retry)Object.assign(base,{drive:pick(PIT_ONE.drive),speed:k.t>.6?"fast":k.t>.3?"mid":"slow",shooter:pick(PIT_ONE.shooter),role:k.t<.3?"defense":pick(PIT_ONE.role),
+      intake:PIT_MANY.intake.filter(()=>rnd()<.6).map(x=>x[0]),zones:PIT_MANY.zones.filter(()=>rnd()<.5).map(x=>x[0]),starts:PIT_MANY.starts.filter(()=>rnd()<.5).map(x=>x[0]),
+      cap:1+Math.floor(rnd()*4),aTips:Math.round(k.a*2),progs:1+Math.floor(rnd()*3),moving:rnd()<.3,aim:rnd()<.5,aLeave:rnd()<.8,aPark:rnd()<.5,tPark:rnd()<.7,late:rnd()<.4,full:rnd()<.6,
+      notes:rnd()<.4?["גאים באוטונומי, אומרים שהוא עקבי","המנגנון חדש, עוד לא נבדק בתחרות","החליפו גלגלים אתמול"][Math.floor(rnd()*3)]:""});
+    pit.push({...pitClean(base),team:t,ev:"",id:"p"+t,by,ts:base.ts});
+    if(rnd()<.12)pit.push({...pitClean(base),retry:false,team:t,ev:"",id:"p"+t,by:"demo"+((i+1)%5+1),ts:base.ts+90000});
+  });
+  return {entries,names,sched,cur:23,scores:sc,profiles,kudos:{demo1:2,demo3:1},pit,pitAssign};
 }
 
 /* ── עזרי תצוגה ── */
@@ -892,25 +908,26 @@ const VIEW_INFO={
   admin:["הגדרות התחרות","המאץ׳ הנוכחי, לוח הזמנים, שיבוץ הסקאוטרים וניקוד רשמי מהמסך."],
   mission:["המאץ׳ שלי","על איזה רובוט אתה מסתכל עכשיו, ומה מחכה לך בהמשך."],
   mine:["ההיסטוריה שלי","כל מה ששמרת בתחרות הזאת. לחיצה על שורה פותחת אותה לעריכה."],
+  pit:["סקאוטינג פיט","שואלים כל קבוצה בפיט על הרובוט שלה: הנעה, איסוף, ירי, אוטונומי וסוף המאץ׳. כל קבוצה משובצת לסקאוטר אחד."],
   profile:["הפרופיל שלי","הרמה שלך, התגים שאספת וטבלת הסקאוטרים של הצוות."]
 };
 function tabsFor(){
-  if(isMgr())return [["board","סקירה כללית","סקירה"],["team","פרופיל קבוצה","קבוצה"],["quals","משחקי הדירוג","דירוג"],["play","בחירת ברית וגמר","גמר"],["crew","הסקאוטרים","צוות"],["entry","הזנת נתונים","הזנה"],["admin","הגדרות התחרות","הגדרות"]];
+  if(isMgr())return [["board","סקירה כללית","סקירה"],["team","פרופיל קבוצה","קבוצה"],["quals","משחקי הדירוג","דירוג"],["play","בחירת ברית וגמר","גמר"],["crew","הסקאוטרים","צוות"],["pit","סקאוטינג פיט","פיט"],["entry","הזנת נתונים","הזנה"],["admin","הגדרות התחרות","הגדרות"]];
   if(S.role&&(S.loaded||!db)&&!myProfile())return [["join","הרשמה","הרשמה"]];
-  return [["mission","המאץ׳ שלי","המאץ׳"],["entry","הזנת נתונים","הזנה"],["mine","ההיסטוריה שלי","היסטוריה"],["profile","הפרופיל שלי","פרופיל"]];
+  return [["mission","המאץ׳ שלי","המאץ׳"],["pit","סקאוטינג פיט","פיט"],["entry","הזנת נתונים","הזנה"],["mine","ההיסטוריה שלי","היסטוריה"],["profile","הפרופיל שלי","פרופיל"]];
 }
 let lastTabsHtml="";
 function renderTabs(){
   const T=tabsFor();
   if(!T.some(t=>t[0]===S.tab)&&!(S.tab==="join"&&myProfile()))S.tab=T[0][0];
   const miss=isMgr()?coverage().missing:missingMine().length;
-  const pend=Object.keys(S.pending).length+(S.profilePending?1:0);
+  const pend=Object.keys(S.pending).length+Object.keys(S.pitPending).length+(S.profilePending?1:0);
   const html=T.map(([k,l,sh])=>`<button class="tab" role="tab" id="tab-${k}" aria-controls="v-${k}" tabindex="${k===S.tab?0:-1}" data-tab="${k}" aria-selected="${k===S.tab}"><span class="tl">${l}</span><span class="ts">${sh||l}</span>${(k==="admin"||k==="mine")&&miss?`<span class="badge" aria-label="${miss} חסרות">${miss}</span>`:""}${k==="mine"&&pend?`<span class="badge wb" aria-label="${pend} ממתינות לשליחה">${pend}</span>`:""}</button>`).join("");
   if(html!==lastTabsHtml){const hadFocus=document.activeElement?.classList.contains("tab");$("tabs").innerHTML=html;lastTabsHtml=html;
     const sel=$("tabs").querySelector('[aria-selected="true"]');sel?.scrollIntoView({inline:"nearest",block:"nearest"});if(hadFocus)sel?.focus();}
   const waiting=!isMgr()&&db&&!S.loaded&&!myProfile();
   $("v-loading").hidden=!waiting;
-  for(const v of ["mission","board","entry","mine","team","quals","play","admin","join","profile","crew"])$("v-"+v).hidden=waiting||v!==S.tab;
+  for(const v of ["mission","board","entry","mine","team","quals","play","admin","join","profile","crew","pit"])$("v-"+v).hidden=waiting||v!==S.tab;
   const vi=VIEW_INFO[S.tab];$("viewHead").hidden=waiting||!vi;if(vi){$("vhT").textContent=vi[0];$("vhD").textContent=vi[1];}
   $("roleTag").textContent=isMgr()?"מנהל":"סקאוטר";$("roleTag").className="role"+(isMgr()?"":" scout");
   $("eventName").textContent=S.control.event||"חדר הנתונים של התחרות";
@@ -1218,7 +1235,9 @@ function renderTeam(){
   if(S.team==null&&played.length)S.team=played.some(a=>a.team===US)?US:sorted[0].team;
   $("tPills").innerHTML=top.map(t=>`<button class="pill${t===S.team?" on":""}" data-team="${t}" aria-pressed="${t===S.team}">${t}</button>`).join("");
   const a=A.find(x=>x.team===S.team);
-  if(!a||!a.n){$("teamBody").innerHTML=`<div class="panel"><div class="empty">${HEXSVG}<h3>${S.team?(a?"קבוצה "+S.team+" לא הגיעה לאף מאץ׳ שנסקר":"אין עדיין נתונים על "+S.team):"בחר קבוצה"}</h3><div>הקלד מספר קבוצה או בחר מהרשימה.</div></div></div>`;return;}
+  const pitP=S.team?pitMerged(pitByTeam().get(S.team)):null;
+  const pitPanel=`<div class="panel c12"><div class="ph"><h2>סקאוטינג פיט</h2><span class="hint">מוצהר · מה שהקבוצה סיפרה</span>${S.team&&S.team!==US?`<span class="right"><button class="btn" data-go="pit" data-pteam="${S.team}">לטופס הפיט</button></span>`:""}</div>${pitSummaryHTML(pitP)}</div>`;
+  if(!a||!a.n){$("teamBody").innerHTML=`<div class="panel"><div class="empty">${HEXSVG}<h3>${S.team?(a?"קבוצה "+S.team+" לא הגיעה לאף מאץ׳ שנסקר":"אין עדיין נתונים על "+S.team):"בחר קבוצה"}</h3><div>הקלד מספר קבוצה או בחר מהרשימה.</div></div></div>${S.team&&pitP?`<div class="grid" style="margin-top:14px">${pitPanel}</div>`:""}`;return;}
   const rank=sorted.indexOf(a)+1;const tn=teamName(a.team);
   const nextM=Object.entries(sched()).map(([m,t])=>[+m,t]).filter(([m,t])=>m>=curMatch()&&t.includes(a.team)).sort((x,y)=>x[0]-y[0])[0];
   const raws=rawAll().filter(r=>r.team===a.team).sort((x,y)=>y.match-x.match||(y.ts-x.ts));
@@ -1243,6 +1262,7 @@ function renderTeam(){
       <div class="ph"><h2>פרופיל</h2><span class="hint">ביחס לטובה ביותר בכל תחום</span></div>
       ${radar(a,played)}
     </div>
+    ${pitPanel}
     <div class="panel c12">
       <div class="minis">
         ${[["היפוכים במאץ׳",nm(r1(a.tips))],["היפוכים באוטונומי",nm(r1(a.aTips))],["זמן מחזור",a.cycle==null?"—":nm(Math.round(a.cycle))+" ש׳"],["יציאה",nm(pct(a.leave))],["חניה באוטונומי",nm(pct(a.aPark))],["חניה בסוף",nm(pct(a.tPark))],["נקודות פרח",nm(r1(a.flower))],["כדורים בגינה",nm(r1(a.garden))],["נהיגה",a.drive?nm(r1(a.drive))+" מתוך 5":"—"],["שיחק הגנה",nm(pct(a.defRate))],["אמינות",nm(pct(a.rel))],["עבירות ליריב",nm(r1(a.foul))]].map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("")}
@@ -1587,7 +1607,7 @@ function scoutVsOfficial(m){
 let ctlSeq=0,ctlBusy=Promise.resolve();
 function writeControl(patch,okMsg){
   if(!db||!isMgr()||S.demo){if(S.demo)toast("במצב הדגמה לא נשמר דבר");return;}
-  const next={cur:+S.control.cur||1,event:S.control.event||"",ev:S.control.ev||"",sched:S.control.sched||{},assign:S.control.assign||{},scores:S.control.scores||{},ignore:S.control.ignore||{},kudos:S.control.kudos||{},board:S.control.board||[],boardAt:S.control.boardAt||0,playoff:S.control.playoff||null,...patch};
+  const next={cur:+S.control.cur||1,event:S.control.event||"",ev:S.control.ev||"",sched:S.control.sched||{},assign:S.control.assign||{},scores:S.control.scores||{},ignore:S.control.ignore||{},kudos:S.control.kudos||{},board:S.control.board||[],boardAt:S.control.boardAt||0,pitAssign:S.control.pitAssign||{},playoff:S.control.playoff||null,...patch};
   next._seq=++ctlSeq;
   S.control=readControl(next);statsCache.key="";render();
   ctlBusy=ctlBusy.then(()=>db.doc("control/main").set(next)).then(()=>{if(okMsg)toast(okMsg);}).catch(()=>{toast("השמירה נכשלה. נסה שוב");ctlSeq=0;});
@@ -1609,7 +1629,7 @@ let newEvArmed=false;
 function newEvent(){
   if(!newEvArmed){newEvArmed=true;renderAdmin();setTimeout(()=>{newEvArmed=false;if(S.tab==="admin")renderAdmin();},4000);return;}
   newEvArmed=false;const ev=Date.now().toString(36).slice(-6);
-  writeControl({ev,cur:1,sched:{},scores:{},assign:{},ignore:{},event:""},"התחילה תחרות חדשה. הרשומות הקודמות נשמרו בצד");
+  writeControl({ev,cur:1,sched:{},scores:{},assign:{},ignore:{},event:"",pitAssign:{}},"התחילה תחרות חדשה. הרשומות הקודמות נשמרו בצד");
 }
 const csvq=v=>{let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
 async function exportCsv(kind){
@@ -1740,7 +1760,7 @@ function render(){
   if(!S.role)return;
   renderTabs();
   $("demoBanner").hidden=!S.demo;
-  const pendN=Object.keys(S.pending).length+(S.profilePending?1:0);
+  const pendN=Object.keys(S.pending).length+Object.keys(S.pitPending).length+(S.profilePending?1:0);
   $("failBanner").hidden=!(S.failCount>=2&&pendN);
   if(!$("failBanner").hidden)$("failTxt").textContent=pendN+" רשומות לא נשלחות כבר כמה ניסיונות"+(S.lastErr?" · "+S.lastErr:"")+". הן שמורות בטלפון.";
   const known=new Set([...entries().map(e=>e.team),...(S.demo?[]:Object.keys(S.teams).map(Number)),...Object.values(sched()).flat()]);
@@ -1754,6 +1774,7 @@ function render(){
   else if(S.tab==="join"){if(!["jNick","jMotto"].includes(ae))renderJoin();}
   else if(S.tab==="profile")renderProfile();
   else if(S.tab==="crew")renderCrew();
+  else if(S.tab==="pit"){if(!["pitNotes","pit-other"].includes(ae)&&document.activeElement?.tagName!=="SELECT")renderPit();}
   else if(S.tab==="team"){if(ae!=="tName")renderTeam();}
   else if(S.tab==="quals"){renderQuals();renderAlly();}
   else if(S.tab==="play"){if(!ae.startsWith("pl-"))renderPlay();renderAlly();}
@@ -1761,7 +1782,7 @@ function render(){
   liveTxt();
 }
 function liveTxt(){
-  const el=$("live");const pend=Object.keys(S.pending).length+(S.profilePending?1:0);
+  const el=$("live");const pend=Object.keys(S.pending).length+Object.keys(S.pitPending).length+(S.profilePending?1:0);
   el.classList.remove("on","wait","err");
   if(S.demo){$("liveTxt").textContent="הדגמה";return;}
   if(!db){$("liveTxt").textContent=S.role?"לא מחובר":"מתחבר…";return;}
@@ -1786,7 +1807,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.scout){S.crewSel=S.crewSel===t.dataset.scout?null:t.dataset.scout;renderCrew();refocus("scout",t.dataset.scout);if(S.crewSel)setTimeout(()=>$("crewDetail")?.scrollIntoView({behavior:"smooth",block:"start"}),30);return;}
   if(t.dataset.kudos){ev.stopPropagation();const u=t.dataset.kudos;const k={...(S.control.kudos||{})};k[u]=(k[u]||0)+1;return writeControl({kudos:k},"נשלח כל הכבוד ל"+scoutName(u));}
   if(t.dataset.pubboard)return publishBoard();
-  if(t.dataset.go)return go(t.dataset.go);
+  if(t.dataset.go){if(t.dataset.pteam){S.pitTeam=null;PF=null;S.pitDirty=false;go(t.dataset.go);return pitOpen(+t.dataset.pteam);}return go(t.dataset.go);}
   if(t.dataset.manual)return manualEntry();
   if(t.dataset.startm)return startMatch(+t.dataset.startm);
   if(t.dataset.focus){$(t.dataset.focus)?.focus();return;}
@@ -1872,11 +1893,11 @@ function sizeOf(o){try{return JSON.stringify(o).length*1.4;}catch(e){return 0;}}
 async function flush(){
   if(!db||!S.me||!S.canWrite||!S.loaded)return;
   if(S.flushing){S.again=true;return;}
-  const snap={...S.pending};const prof=S.profilePending;if(!Object.keys(snap).length&&!prof)return;
+  const snap={...S.pending};const psnap={...S.pitPending};const prof=S.profilePending;if(!Object.keys(snap).length&&!Object.keys(psnap).length&&!prof)return;
   const patch={};for(const [id,r] of Object.entries(snap))patch[id]=r===null?{deleted:true,ts:Date.now()}:r;
-  const upd={ts:Date.now()};if(Object.keys(patch).length)upd.rows=patch;if(prof)upd.profile=prof;
-  const full={rows:{...S.myRaw,...patch},ts:Date.now()};const fp=prof||S.myProfile;if(fp)full.profile=fp;
-  if(sizeOf({...S.myRaw,...patch})>250000){S.lastErr="המסמך שלך כמעט מלא, פנה למנהל";S.failCount=9;render();return;}
+  const upd={ts:Date.now()};if(Object.keys(patch).length)upd.rows=patch;if(prof)upd.profile=prof;if(Object.keys(psnap).length)upd.pit=psnap;
+  const full={rows:{...S.myRaw,...patch},ts:Date.now()};const fp=prof||S.myProfile;if(fp)full.profile=fp;if(Object.keys(psnap).length||Object.keys(S.myPit).length)full.pit={...S.myPit,...psnap};
+  if(sizeOf({...S.myRaw,...patch})+sizeOf({...S.myPit,...psnap})>250000){S.lastErr="המסמך שלך כמעט מלא, פנה למנהל";S.failCount=9;render();return;}
   S.flushing=true;const ref=db.doc("entries/"+S.me);
   try{
     /* מסמך קיים: רק מיזוג. דריסה מלאה רק כשהמאגר אמר שהמסמך לא קיים */
@@ -1885,7 +1906,9 @@ async function flush(){
     if(prof&&S.profilePending===prof){S.myProfile=prof;S.profilePending=null;LS.del(profKey());}
     S.myExists=true;
     for(const [id,r] of Object.entries(snap))if(S.pending[id]===r)delete S.pending[id];
-    S.myRaw={...S.myRaw,...patch};LS.set(pendKey(),S.pending);S.failCount=0;S.lastErr="";
+    S.myRaw={...S.myRaw,...patch};LS.set(pendKey(),S.pending);
+    for(const [id,r] of Object.entries(psnap))if(S.pitPending[id]===r)delete S.pitPending[id];
+    S.myPit={...S.myPit,...psnap};LS.set(pitPendKey(),S.pitPending);S.failCount=0;S.lastErr="";
   }catch(e){
     S.failCount++;
     if(e?.code==="invalid_argument"){S.lastErr="אין הרשאת כתיבה";const c=user?await user.can("data.write").catch(()=>null):null;if(c===false)S.canWrite=false;}
@@ -1897,7 +1920,7 @@ async function flush(){
     if(S.again){S.again=false;flush();}
   }
 }
-setInterval(()=>{if(Object.keys(S.pending).length||S.profilePending)flush();},15000);
+setInterval(()=>{if(Object.keys(S.pending).length||Object.keys(S.pitPending).length||S.profilePending)flush();},15000);
 function save(){
   if(!db||!S.me)return;
   if(S.demo){setMsg("במצב הדגמה לא שומרים. צא מההדגמה כדי להזין נתונים אמיתיים","warn",true);return;}
@@ -1970,22 +1993,209 @@ function subscribe(){
     db.collection("teams").onSnapshot(sn=>{const t={};sn.docs.forEach(x=>{const v=x.data()||{};const n=N(v.num,99999);if(n)t[n]={num:n,name:String(v.name||"").slice(0,40)};});S.teams=t;render();},()=>{});
     if(isMgr()){
       db.collection("entries").onSnapshot(sn=>{
-        const docs={};sn.docs.forEach(x=>{const d=x.data()||{};docs[x.id]={rows:(d.rows&&typeof d.rows==="object")?d.rows:{},ts:+d.ts||0,profile:cleanProfile(d.profile)};});S.docs=docs;
-        if(S.me&&docs[S.me]){S.myRaw=docs[S.me].rows;S.myProfile=docs[S.me].profile;S.myExists=true;}
+        const docs={};sn.docs.forEach(x=>{const d=x.data()||{};docs[x.id]={rows:(d.rows&&typeof d.rows==="object")?d.rows:{},pit:(d.pit&&typeof d.pit==="object")?d.pit:{},ts:+d.ts||0,profile:cleanProfile(d.profile)};});S.docs=docs;
+        if(S.me&&docs[S.me]){S.myRaw=docs[S.me].rows;S.myPit=docs[S.me].pit;S.myProfile=docs[S.me].profile;S.myExists=true;}
         if(!sn.metadata.fromCache||S.myExists)S.loaded=true;
         statsCache.key="";resolveNames();render();flush();
       },retry);
     }else if(S.me){
       let greeted=false;
       db.doc("entries/"+S.me).onSnapshot(sn=>{
-        if(sn.exists){const d=sn.data()||{};S.myRaw=(d.rows&&typeof d.rows==="object")?d.rows:{};S.myProfile=cleanProfile(d.profile);S.myExists=true;S.loaded=true;}
+        if(sn.exists){const d=sn.data()||{};S.myRaw=(d.rows&&typeof d.rows==="object")?d.rows:{};S.myPit=(d.pit&&typeof d.pit==="object")?d.pit:{};S.myProfile=cleanProfile(d.profile);S.myExists=true;S.loaded=true;}
         else if(!sn.metadata.fromCache){S.loaded=true;S.myExists=false;
-          if(!greeted&&S.canWrite&&!Object.keys(S.pending).length){greeted=true;db.doc("entries/"+S.me).set({rows:{},ts:Date.now()}).then(()=>{S.myExists=true;}).catch(()=>{});}}
+          if(!greeted&&S.canWrite&&!Object.keys(S.pending).length&&!Object.keys(S.pitPending).length){greeted=true;db.doc("entries/"+S.me).set({rows:{},ts:Date.now()}).then(()=>{S.myExists=true;}).catch(()=>{});}}
         render();flush();
       },retry);
     }
   }catch(e){retry();}
 }
+
+/* ── סקאוטינג פיט: רשומה אחת לכל קבוצה, בשיבוץ כמו במאצ׳ים ── */
+/* הרשומות נשמרות במסמך של הסקאוטר עצמו (entries/<uid>.pit), ולכן ההרשאות זהות לרשומות המאצ׳ים */
+const PIT_ONE={drive:[["mecanum","מקנום"],["tank","טנק"],["other","אחר"]],speed:[["slow","איטי"],["mid","בינוני"],["fast","מהיר"]],
+  shooter:[["one","גלגל אחד"],["two","שני גלגלים"],["other","אחר"]],role:[["scorer","מנקד"],["defense","הגנה"],["both","שניהם"]]};
+const PIT_MANY={intake:[["flower","פרח"],["floor","רצפה"],["human","שחקן אנושי"]],zones:[["near","קרוב"],["mid","אמצע"],["far","רחוק"]],starts:[["A","A"],["B","B"],["C","C"]]};
+const PIT_BOOL=[["moving","יורה בתנועה"],["aim","מכוון לבד"],["aLeave","יוצא מהקיר"],["aPark","חונה בסוף האוטונומי"],["tPark","חונה בסוף המאץ׳"],["late","נקטר בדקה האחרונה"],["full","מנצל את כל ה־18 אינץ׳"]];
+const PIT_NUM={cap:4,aTips:6,progs:5};
+const PIT_LBL={drive:"הנעה",speed:"מהירות",shooter:"מנגנון ירי",role:"תפקיד מועדף",intake:"אוסף מ",zones:"יורה מ",starts:"עמדות פתיחה",cap:"כדורים שמחזיק",aTips:"היפוכים באוטונומי",progs:"תוכניות אוטונומי"};
+const pitId=t=>(curEv()?curEv()+"_":"")+"p"+t;
+const pitPendKey=()=>"bbz-pitpending:"+(S.me||"anon");
+S.myPit={};S.pitPending={};S.pitTeam=null;S.pitDirty=false;
+let PF=null,pitRetryArmed=false,pitArm=null;
+function pitBlank(){const o={notes:"",retry:false,edits:[]};for(const k of Object.keys(PIT_ONE))o[k]="";for(const k of Object.keys(PIT_MANY))o[k]=[];for(const [k] of PIT_BOOL)o[k]=false;for(const k of Object.keys(PIT_NUM))o[k]=0;return o;}
+function pitClean(e){
+  const o=pitBlank();e=e&&typeof e==="object"?e:{};
+  for(const [k,opts] of Object.entries(PIT_ONE))o[k]=opts.some(x=>x[0]===e[k])?e[k]:"";
+  for(const [k,opts] of Object.entries(PIT_MANY)){const ok=new Set(opts.map(x=>x[0]));o[k]=[...new Set(Array.isArray(e[k])?e[k]:[])].filter(x=>ok.has(x));}
+  for(const [k] of PIT_BOOL)o[k]=!!e[k];
+  for(const [k,mx] of Object.entries(PIT_NUM))o[k]=Math.max(0,Math.min(mx,Math.round(+e[k]||0)));
+  o.notes=typeof e.notes==="string"?e.notes.replace(STRIP,"").slice(0,400):"";
+  o.retry=!!e.retry;
+  o.edits=(Array.isArray(e.edits)?e.edits:[]).map(x=>Math.max(0,Math.min(+x||0,Date.now()+300000))).filter(Boolean).slice(-5);
+  return o;
+}
+function pitRead(id,r,by){
+  if(!r||typeof r!=="object"||r.deleted===true)return null;
+  const o={...pitClean(r),team:N(r.team,99999),ts:Math.max(0,Math.min(+r.ts||0,Date.now()+300000)),ev:String(r.ev||"").replace(/[^a-z0-9]/gi,"").slice(0,12),id:String(id),by:String(by||"")};
+  if(!o.team||o.id!==(o.ev?o.ev+"_":"")+"p"+o.team)return null;
+  return o;
+}
+function pitMine(){
+  const raw={...(S.myPit||{})};for(const [id,r] of Object.entries(S.pitPending))raw[id]=r;
+  const out={};for(const [id,r] of Object.entries(raw)){const o=pitRead(id,r,S.me);if(o&&o.ev===curEv())out[o.team]=o;}
+  return out;
+}
+function pitAll(){
+  if(S.demo)return S.demoData.pit||[];
+  const out=Object.values(pitMine());
+  if(isMgr())for(const [uid,d] of Object.entries(S.docs)){if(uid===S.me)continue;for(const [id,r] of Object.entries(d.pit||{})){const o=pitRead(id,r,uid);if(o&&o.ev===curEv())out.push(o);}}
+  return out;
+}
+/* מצב לכל קבוצה: done = כמה רשומות מלאות, retry = סומנה "לנסות שוב" */
+function pitByTeam(){
+  const m=new Map();
+  for(const r of pitAll()){if(!m.has(r.team))m.set(r.team,[]);m.get(r.team).push(r);}
+  for(const g of m.values())g.sort((a,b)=>b.ts-a.ts);
+  return m;
+}
+const pitAssignMap=()=>S.demo?(S.demoData.pitAssign||{}):(S.control.pitAssign||{});
+function pitOwner(){const o={};for(const [u,ts] of Object.entries(pitAssignMap()))for(const t of ts)o[t]=u;return o;}
+function pitTeams(){
+  const s=new Set(Object.values(sched()).flat());
+  if(!S.demo)for(const t of Object.keys(S.teams))s.add(+t);
+  for(const ts of Object.values(pitAssignMap()))for(const t of ts)s.add(t);
+  for(const r of pitAll())s.add(r.team);
+  s.delete(US);s.delete(0);
+  return [...s].filter(Boolean).sort((a,b)=>a-b);
+}
+function pitStatus(g){
+  const done=(g||[]).filter(r=>!r.retry);
+  if(done.length>=2)return ["dup","נסקר פעמיים","warn"];
+  if(done.length===1)return ["ok","נסקר","good"];
+  if((g||[]).some(r=>r.retry))return ["retry","לנסות שוב","bad"];
+  return ["miss","חסר",""];
+}
+/* מיזוג לתצוגה: הרשומה המלאה האחרונה, ואיחוד של בחירות מרובות */
+function pitMerged(g){
+  const done=(g||[]).filter(r=>!r.retry);if(!done.length)return null;
+  const o={...done[0]};for(const k of Object.keys(PIT_MANY))o[k]=[...new Set(done.flatMap(r=>r[k]))];
+  o.notes=[...new Set(done.map(r=>r.notes).filter(Boolean))].join(" · ").slice(0,600);o.bys=[...new Set(done.map(r=>r.by))];
+  return o;
+}
+const pitTxt=(k,v)=>{if(PIT_ONE[k])return (PIT_ONE[k].find(x=>x[0]===v)||[,"—"])[1];if(PIT_MANY[k])return v.length?v.map(x=>(PIT_MANY[k].find(y=>y[0]===x)||[,x])[1]).join(", "):"—";return v;};
+function pitSummaryHTML(p){
+  if(!p)return '<div class="flat">אין עדיין סקאוטינג פיט לקבוצה הזו.</div>';
+  const rows=[...Object.keys(PIT_ONE),...Object.keys(PIT_MANY)].map(k=>[PIT_LBL[k],pitTxt(k,p[k])]).concat(Object.keys(PIT_NUM).map(k=>[PIT_LBL[k],p[k]?String(p[k]):"—"]));
+  const yes=PIT_BOOL.filter(([k])=>p[k]).map(([,l])=>`<span class="chip good">${l}</span>`).join(" ");
+  return `<div class="minis">${rows.map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v" style="font-size:15px">${esc(v)}</div></div>`).join("")}</div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${yes||'<span class="flat">אין סימונים</span>'}</div>
+    ${p.notes?`<p style="margin:10px 0 0">${esc(p.notes)}</p>`:""}
+    <div class="flat" style="font-size:12px;margin-top:8px">מוצהר: זה מה שהקבוצה סיפרה בפיט · ${esc(p.bys.map(scoutName).join(", "))} · ${ago(p.ts)}</div>`;
+}
+function pitOpen(team){
+  team=N(team,99999);if(!team)return;
+  if(S.pitDirty&&S.pitTeam&&S.pitTeam!==team&&pitArm!=="open"+team){pitArm="open"+team;toast("יש שינויים שלא נשמרו בקבוצה "+S.pitTeam+". לחץ שוב כדי לעבור בלי לשמור");return;}
+  pitArm=null;S.pitTeam=team;const mine=pitMine()[team];PF=mine?pitClean(mine):pitBlank();S.pitDirty=false;pitRetryArmed=false;
+  renderPit();requestAnimationFrame(()=>$("pitForm")?.scrollIntoView({behavior:"smooth",block:"start"}));
+}
+function pitSave(retry){
+  if(!S.pitTeam||!PF)return;
+  if(S.demo){toast("במצב הדגמה לא שומרים");return;}
+  if(!db||!S.me){toast("אין חיבור למאגר");return;}
+  const team=S.pitTeam,id=pitId(team),prev=pitMine()[team];
+  PF.notes=$("pitNotes")?.value||PF.notes;
+  const body={...pitClean(PF),retry:!!retry,team,ts:Date.now(),ev:curEv(),edits:prev?[...(prev.edits||[]),prev.ts].slice(-5):[]};
+  if(retry&&prev&&!prev.retry){toast("כבר יש לך רשומה מלאה לקבוצה הזו");return;}
+  S.pitPending[id]=body;LS.set(pitPendKey(),S.pitPending);S.pitDirty=false;
+  toast(retry?"קבוצה "+team+" סומנה לנסות שוב":navigator.onLine===false?"נשמר בטלפון · יישלח כשתחזור הרשת":"נשמר · פיט קבוצה "+team);buzz(30);
+  /* הקבוצה הבאה ברשימה שלי */
+  const mineT=(pitAssignMap()[S.me]||[]);const st=pitMine();const next=mineT.find(t=>t!==team&&(!st[t]||st[t].retry));
+  S.pitTeam=null;PF=null;flush();
+  if(next&&!retry)pitOpen(next);else renderPit();
+}
+function pitAutoAssign(){
+  const g=pitByTeam();const teams=pitTeams();
+  let scouts=Object.keys(S.docs).filter(u=>u!==S.me);if(!scouts.length&&S.me)scouts=[S.me];
+  if(!scouts.length){toast("אין עדיין סקאוטרים מחוברים");return;}
+  const own=pitOwner();const a={};scouts.forEach(u=>a[u]=[]);
+  /* קבוצה שכבר נסקרה, או שסומנה "לנסות שוב", נשארת אצל אותו סקאוטר; השאר מתחלקות שווה */
+  const open=[];for(const t of teams){const st=pitStatus(g.get(t))[0];const u=own[t];if(st!=="miss"&&u&&a[u])a[u].push(t);else open.push(t);}
+  for(const t of open){const u=scouts.reduce((b,x)=>a[x].length<a[b].length?x:b,scouts[0]);a[u].push(t);}
+  for(const u of Object.keys(a))a[u].sort((x,y)=>x-y);
+  writeControl({pitAssign:a},"שובצו "+teams.length+" קבוצות ל־"+scouts.length+" סקאוטרים");
+}
+function pitSetOwner(team,uid){
+  const a={};for(const [u,ts] of Object.entries(S.control.pitAssign||{}))a[u]=ts.filter(t=>t!==team);
+  if(uid){a[uid]=[...(a[uid]||[]),team].sort((x,y)=>x-y);}
+  for(const u of Object.keys(a))if(!a[u].length)delete a[u];
+  writeControl({pitAssign:a});
+}
+function pitFormHTML(){
+  const t=S.pitTeam;if(!t||!PF)return "";
+  const one=k=>`<div class="field"><span class="lbl">${PIT_LBL[k]}</span><div class="seg">${PIT_ONE[k].map(([v,l])=>`<button type="button" data-p1="${k}" data-v="${v}" aria-pressed="${PF[k]===v}">${l}</button>`).join("")}</div></div>`;
+  const many=k=>`<div class="field"><span class="lbl">${PIT_LBL[k]} <span class="flat">(אפשר כמה${k==="starts"?". בצד הכחול הן D, E, F":""})</span></span><div style="display:flex;gap:6px;flex-wrap:wrap">${PIT_MANY[k].map(([v,l])=>`<button type="button" class="pill${PF[k].includes(v)?" on":""}" data-pm="${k}" data-v="${v}" aria-pressed="${PF[k].includes(v)}">${l}</button>`).join("")}</div></div>`;
+  const num=k=>`<div class="ctr" data-pn="${k}"><span class="lbl">${PIT_LBL[k]}</span><div class="w"><button type="button" data-pd="-1" aria-label="פחות">−</button><output>${PF[k]}</output><button type="button" class="plus" data-pd="1" aria-label="עוד">+</button></div></div>`;
+  const tog=k=>{const l=PIT_BOOL.find(x=>x[0]===k)[1];return `<button type="button" class="tog" data-pb="${k}" aria-pressed="${PF[k]}">${l} <span class="sw"></span></button>`;};
+  /* מפת זירה קטנה: שלוש רצועות מרחק מהכוורת */
+  const zmap=`<div class="field"><span class="lbl">יורה מ <span class="flat">(לחץ על המפה, אפשר כמה)</span></span>
+    <svg viewBox="0 0 300 120" width="300" height="120" role="group" aria-label="אזורי ירי" style="max-width:100%;display:block">
+      <rect x="1" y="1" width="298" height="118" rx="8" fill="var(--sunk)" stroke="var(--line)"/>
+      ${[["near",10,"קרוב"],["mid",105,"אמצע"],["far",200,"רחוק"]].map(([z,x,l])=>{const on=PF.zones.includes(z);return `<g data-pm="zones" data-v="${z}" role="button" tabindex="0" aria-pressed="${on}" style="cursor:pointer"><rect x="${x}" y="10" width="90" height="100" rx="6" fill="${on?"var(--honey)":"var(--surface)"}" stroke="var(--line)"/><text x="${x+45}" y="66" text-anchor="middle" direction="rtl" font-size="15" font-weight="700" fill="var(--ink)">${l}</text></g>`;}).join("")}
+      <polygon points="18,60 26,46 34,60 26,74" fill="var(--ink)" opacity=".35"/>
+    </svg><div class="flat" style="font-size:12px">המעוין הוא הכוורת. ״קרוב״ הכי צמוד אליה</div></div>`;
+  return `<div class="panel" id="pitForm">
+    <div class="ph"><h2>פיט · קבוצה ${t}${teamName(t)?" · "+esc(teamName(t)):""}</h2><span class="hint">שואלים את הקבוצה. כל מה שכאן מסומן ״מוצהר״</span><span class="right"><button type="button" class="btn" data-pclose="1">סגור</button></span></div>
+    <div class="block"><h3>הנעה ואיסוף</h3><div class="row">${one("drive")}${one("speed")}</div>${many("intake")}<div class="ctrs">${num("cap")}</div></div>
+    <div class="block"><h3>ירי</h3><div class="row">${one("shooter")}</div>${zmap}<div class="ctrs">${tog("moving")}${tog("aim")}</div></div>
+    <div class="block"><h3>אוטונומי</h3>${many("starts")}<div class="ctrs">${tog("aLeave")}${tog("aPark")}${num("aTips")}${num("progs")}</div></div>
+    <div class="block"><h3>סוף המאץ׳ ותפקיד</h3><div class="ctrs">${tog("tPark")}${tog("late")}</div><div class="row">${one("role")}</div><div class="ctrs">${tog("full")}</div></div>
+    <div class="block"><div class="field"><label for="pitNotes">הערות</label><textarea class="inp" id="pitNotes" maxlength="400" placeholder="במה הם גאים? מה עוד לא עובד להם?">${esc(PF.notes)}</textarea></div></div>
+    <div class="savebar"><span class="msg">${PF.edits?.length?"עודכן "+PF.edits.length+" פעמים":""}</span><div class="gap">
+      <button type="button" class="btn" data-pretry="1">${pitRetryArmed?"לחץ שוב לאישור":"לא מצאתי · לנסות שוב"}</button>
+      <button type="button" class="btn pri big" data-psave="1">שמירה</button></div></div>
+  </div>`;
+}
+function renderPit(){
+  const el=$("v-pit");if(!el)return;
+  const g=pitByTeam();const teams=pitTeams();const own=pitOwner();
+  let top="";
+  if(isMgr()){
+    const st=teams.map(t=>pitStatus(g.get(t))[0]);const cnt=k=>st.filter(x=>x===k).length;
+    const scouts=[...new Set([...(S.demo?scoutsList().map(s=>s.uid):Object.keys(S.docs)),...(S.me&&!S.demo?[S.me]:[])])];
+    top=`<div class="panel"><div class="ph"><h2>כיסוי הפיט</h2><span class="hint">נסקרו ${cnt("ok")+cnt("dup")} מתוך ${teams.length}</span><span class="right"><button type="button" class="btn" data-pauto="1">שיבוץ אוטומטי</button></span></div>
+      <div class="legend" style="margin-bottom:8px"><span><span class="chip good">נסקר ${cnt("ok")}</span></span><span><span class="chip warn">פעמיים ${cnt("dup")}</span></span><span><span class="chip bad">לנסות שוב ${cnt("retry")}</span></span><span><span class="chip">חסר ${cnt("miss")}</span></span></div>
+      ${teams.length?`<div class="tw"><table><thead><tr><th>קבוצה</th><th>שם</th><th>משובץ אצל</th><th>מצב</th><th>מי סקר</th></tr></thead><tbody>${teams.map(t=>{const s=pitStatus(g.get(t));const bys=[...new Set((g.get(t)||[]).map(r=>r.by))];
+        return `<tr class="click" tabindex="0" data-popen="${t}"><td class="num"><b>${t}</b></td><td>${esc(teamName(t))}</td><td><select class="inp" data-pas="${t}" style="padding:4px 6px;font-size:13px" ${S.demo?"disabled":""}><option value="">לא משובץ</option>${scouts.map(u=>`<option value="${esc(u)}" ${own[t]===u?"selected":""}>${esc(scoutName(u))}</option>`).join("")}</select></td><td><span class="chip ${s[2]}">${s[1]}</span></td><td style="font-size:13px">${esc(bys.map(scoutName).join(", "))}</td></tr>`;}).join("")}</tbody></table></div>`
+      :`<div class="empty">${HEXSVG}<div>אין עדיין רשימת קבוצות. הדבק לוח זמנים בהגדרות, או הוסף קבוצות בפרופיל קבוצה.</div><button class="btn" data-go="admin">להגדרות</button></div>`}</div>`;
+  }
+  const mineT=pitAssignMap()[S.me]||[];const mine=pitMine();
+  const myList=`<div class="panel"><div class="ph"><h2>הקבוצות שלך בפיט</h2><span class="hint">${mineT.length?mineT.filter(t=>mine[t]&&!mine[t].retry).length+" מתוך "+mineT.length+" מולאו":"המנהל עוד לא שיבץ לך קבוצות"}</span></div>
+    ${mineT.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${mineT.map(t=>{const r=mine[t];const s=r?(r.retry?["bad","↻"]:["good","✓"]):["",""];return `<button type="button" class="pill${S.pitTeam===t?" on":""}" data-popen="${t}" aria-pressed="${S.pitTeam===t}">${t}${s[1]?` <span class="chip ${s[0]}">${s[1]}</span>`:""}</button>`;}).join("")}</div>`:""}
+    <div class="row" style="margin-top:10px"><div class="field"><label for="pit-other">קבוצה אחרת</label><input class="inp num" id="pit-other" type="number" inputmode="numeric" enterkeyhint="go" min="1" max="99999" list="teamList" style="width:140px"></div><div class="field"><span class="lbl">&nbsp;</span><button type="button" class="btn" data-pother="1">פתח</button></div></div></div>`;
+  const summary=isMgr()&&S.pitTeam?`<div class="panel"><div class="ph"><h2>מה ידוע על ${S.pitTeam}</h2><span class="hint">כל הסקאוטרים יחד</span></div>${pitSummaryHTML(pitMerged(g.get(S.pitTeam)))}</div>`:"";
+  el.innerHTML=top+myList+summary+pitFormHTML();
+}
+/* לחיצות בתוך הפיט */
+$("v-pit").addEventListener("click",ev=>{
+  const t=ev.target.closest("button,[data-pm],[data-popen]");if(!t)return;
+  const d=t.dataset;let hit=true;
+  if(d.popen&&!ev.target.closest("select"))pitOpen(+d.popen);
+  else if(d.pother)pitOpen($("pit-other").value);
+  else if(d.pclose){if(S.pitDirty&&pitArm!=="close"){pitArm="close";toast("יש שינויים שלא נשמרו. לחץ שוב על סגור");return;}pitArm=null;S.pitTeam=null;PF=null;S.pitDirty=false;renderPit();}
+  else if(d.pauto)pitAutoAssign();
+  else if(d.psave)pitSave(false);
+  else if(d.pretry){if(!pitRetryArmed){pitRetryArmed=true;renderPit();setTimeout(()=>{if(pitRetryArmed){pitRetryArmed=false;if(S.tab==="pit")renderPit();}},3000);return;}pitRetryArmed=false;pitSave(true);}
+  else if(PF&&d.p1){PF[d.p1]=PF[d.p1]===d.v?"":d.v;S.pitDirty=true;renderPit();}
+  else if(PF&&d.pm){const a=PF[d.pm];PF[d.pm]=a.includes(d.v)?a.filter(x=>x!==d.v):[...a,d.v];S.pitDirty=true;renderPit();}
+  else if(PF&&d.pb){PF[d.pb]=!PF[d.pb];S.pitDirty=true;renderPit();}
+  else if(PF&&d.pd){const k=t.closest("[data-pn]").dataset.pn;PF[k]=Math.max(0,Math.min(PIT_NUM[k],PF[k]+ +d.pd));S.pitDirty=true;buzz(12);renderPit();}
+  else hit=false;
+  if(hit)ev.stopPropagation();
+});
+$("v-pit").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches?.("g[data-pm]")){e.preventDefault();e.target.dispatchEvent(new MouseEvent("click",{bubbles:true}));}
+  if(e.key==="Enter"&&e.target.id==="pit-other"){e.preventDefault();pitOpen(e.target.value);}});
+$("v-pit").addEventListener("input",e=>{if(e.target.id==="pitNotes"&&PF){PF.notes=e.target.value;S.pitDirty=true;}});
+$("v-pit").addEventListener("change",e=>{const el=e.target;if(el.dataset?.pas!=null&&isMgr()){e.stopPropagation();pitSetOwner(+el.dataset.pas,el.value);}});
 
 S.tab=LS.get("bbz-tab",null);
 (async function boot(){
@@ -1996,7 +2206,7 @@ S.tab=LS.get("bbz-tab",null);
     let owner=false;
     if(u){try{owner=await u.isOwner();}catch(e){}try{S.me=await u.id();}catch(e){}try{S.myName=String(await u.name()||"").slice(0,60);}catch(e){}try{const c=await u.can("data.write");if(c===false)S.canWrite=false;}catch(e){}}
     S.role=owner?"manager":"scout";
-    S.pending=LS.get(pendKey(),{});S.profilePending=cleanProfile(LS.get(profKey(),null));
+    S.pending=LS.get(pendKey(),{});S.pitPending=LS.get(pitPendKey(),{});S.profilePending=cleanProfile(LS.get(profKey(),null));
     LS.del("bbz-pending");
     restoreDraft();
     if(db)subscribe();
