@@ -1,0 +1,641 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "robot-profile-v1.schema.json",
+  "title": "Apollo 9662 scouting -> simulator package, version 1",
+  "description": "Scouting → simulator package, version 1. Extra properties may appear in later v1 files; consumers must ignore fields they do not know and reject any other version.",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "generated_at",
+    "event",
+    "event_code",
+    "units",
+    "robots"
+  ],
+  "properties": {
+    "format": {
+      "enum": [
+        "apollo9662-scouting/match",
+        "apollo9662-scouting/event"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "event_code": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9]{0,12}$"
+    },
+    "units": {
+      "type": "object",
+      "required": [
+        "time",
+        "distance",
+        "share"
+      ],
+      "properties": {
+        "time": {
+          "const": "s"
+        },
+        "distance": {
+          "const": "in"
+        },
+        "share": {
+          "const": "0-1"
+        }
+      }
+    },
+    "robots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "apollo9662-scouting/match"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "match",
+          "alliances"
+        ],
+        "properties": {
+          "match": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999
+          },
+          "alliances": {
+            "type": "object",
+            "required": [
+              "red",
+              "blue"
+            ],
+            "properties": {
+              "red": {
+                "$ref": "#/$defs/alliancePair"
+              },
+              "blue": {
+                "$ref": "#/$defs/alliancePair"
+              }
+            }
+          },
+          "robots": {
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "required": [
+                "alliance"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "apollo9662-scouting/event"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "schedule"
+        ],
+        "properties": {
+          "schedule": {
+            "type": "object",
+            "description": "match number (string key) -> {red:[t,t], blue:[t,t]}. Only complete matches are included.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]{0,2}$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "red",
+                "blue"
+              ],
+              "properties": {
+                "red": {
+                  "$ref": "#/$defs/alliancePair"
+                },
+                "blue": {
+                  "$ref": "#/$defs/alliancePair"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "team": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99999
+    },
+    "alliancePair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/team"
+      }
+    },
+    "unit01": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "boolOrNull": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "team",
+        "matches_seen",
+        "no_shows",
+        "is_us",
+        "declared",
+        "measured",
+        "confidence"
+      ],
+      "properties": {
+        "team": {
+          "$ref": "#/$defs/team"
+        },
+        "matches_seen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_shows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_us": {
+          "type": "boolean"
+        },
+        "alliance": {
+          "enum": [
+            "red",
+            "blue"
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/unit01"
+        },
+        "declared": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/declared"
+            }
+          ]
+        },
+        "measured": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/measured"
+            }
+          ]
+        }
+      }
+    },
+    "declared": {
+      "type": "object",
+      "required": [
+        "drive",
+        "speed",
+        "capacity",
+        "intake_from",
+        "intake_side",
+        "shooters",
+        "shooter_mount",
+        "max_range_in",
+        "shoot_zones",
+        "shoots_moving",
+        "auto_aim",
+        "auto_starts",
+        "auto_leave",
+        "auto_park",
+        "auto_balls",
+        "auto_tips",
+        "auto_programs",
+        "end_park",
+        "late_nectar",
+        "flower_lift",
+        "preferred_role",
+        "full_size",
+        "shooter_wheels",
+        "confidence"
+      ],
+      "properties": {
+        "drive": {
+          "enum": [
+            "mecanum",
+            "tank",
+            "other",
+            null
+          ]
+        },
+        "speed": {
+          "enum": [
+            "slow",
+            "mid",
+            "fast",
+            null
+          ]
+        },
+        "capacity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          ]
+        },
+        "intake_from": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "flower",
+                  "floor",
+                  "human"
+                ]
+              }
+            }
+          ]
+        },
+        "intake_side": {
+          "enum": [
+            "front",
+            "back",
+            "side",
+            null
+          ]
+        },
+        "shooters": {
+          "enum": [
+            0,
+            1,
+            2,
+            null
+          ]
+        },
+        "shooter_mount": {
+          "enum": [
+            "fixed",
+            "turret",
+            null
+          ]
+        },
+        "max_range_in": {
+          "enum": [
+            36,
+            72,
+            108,
+            144,
+            null
+          ]
+        },
+        "shoot_zones": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "near",
+                  "mid",
+                  "far"
+                ]
+              }
+            }
+          ]
+        },
+        "shoots_moving": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "auto_aim": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "auto_starts": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "A",
+                  "B",
+                  "C"
+                ]
+              }
+            }
+          ]
+        },
+        "auto_leave": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "auto_park": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "auto_balls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8
+            }
+          ]
+        },
+        "auto_tips": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          ]
+        },
+        "auto_programs": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            }
+          ]
+        },
+        "end_park": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "late_nectar": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "flower_lift": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "preferred_role": {
+          "enum": [
+            "scorer",
+            "defense",
+            "both",
+            null
+          ]
+        },
+        "full_size": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "shooter_wheels": {
+          "enum": [
+            "one",
+            "two",
+            "other",
+            null
+          ]
+        },
+        "confidence": {
+          "const": 0.5
+        }
+      }
+    },
+    "mNum": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "value",
+            "confidence",
+            "n"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0
+            },
+            "confidence": {
+              "$ref": "#/$defs/unit01"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "mShare": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "value",
+            "confidence",
+            "n"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/unit01"
+            },
+            "confidence": {
+              "$ref": "#/$defs/unit01"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "mEnum": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "value",
+            "confidence",
+            "n"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "confidence": {
+              "$ref": "#/$defs/unit01"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "measured": {
+      "type": "object",
+      "required": [
+        "reliability"
+      ],
+      "properties": {
+        "cycle_s": {
+          "$ref": "#/$defs/mNum"
+        },
+        "tips_per_match": {
+          "$ref": "#/$defs/mNum"
+        },
+        "auto_tips": {
+          "$ref": "#/$defs/mNum"
+        },
+        "accuracy": {
+          "$ref": "#/$defs/mShare"
+        },
+        "shots_per_match": {
+          "$ref": "#/$defs/mNum"
+        },
+        "auto_points": {
+          "$ref": "#/$defs/mNum"
+        },
+        "tele_points": {
+          "$ref": "#/$defs/mNum"
+        },
+        "end_points": {
+          "$ref": "#/$defs/mNum"
+        },
+        "total_points": {
+          "$ref": "#/$defs/mNum"
+        },
+        "auto_start": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/mEnum"
+            }
+          ],
+          "if": {
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "enum": [
+                  "A",
+                  "B",
+                  "C"
+                ]
+              }
+            }
+          }
+        },
+        "main_shoot_zone": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/mEnum"
+            }
+          ],
+          "if": {
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "enum": [
+                  "near",
+                  "mid",
+                  "far"
+                ]
+              }
+            }
+          }
+        },
+        "auto_leave": {
+          "$ref": "#/$defs/mShare"
+        },
+        "auto_park": {
+          "$ref": "#/$defs/mShare"
+        },
+        "end_park": {
+          "$ref": "#/$defs/mShare"
+        },
+        "defense_share": {
+          "$ref": "#/$defs/mShare"
+        },
+        "reliability": {
+          "$ref": "#/$defs/mShare"
+        },
+        "fouls_points_per_match": {
+          "$ref": "#/$defs/mNum"
+        },
+        "drive_rating": {
+          "$ref": "#/$defs/mShare"
+        }
+      },
+      "description": "A team that only had no-shows has just reliability (0). Otherwise all fields are present (null when unknown)."
+    }
+  }
+}

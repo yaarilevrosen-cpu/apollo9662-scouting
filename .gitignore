@@ -12,3 +12,6 @@ backups/
 *.csv
 exports/
 pc-test.html
+tools/tests/shots/
+tools/tests/sample-*.json
+node_modules/

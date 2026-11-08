@@ -1,0 +1,56 @@
+const {chromium}=require('playwright');
+const fs=require('fs');
+const html=fs.readFileSync(process.argv[2],'utf8');
+const mock=fs.readFileSync(__dirname+'/mock.js','utf8');
+const fails=[];const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails.push(m);};
+async function page(browser,seed,vp){
+  const ctx=await browser.newContext({viewport:vp||{width:390,height:844}});
+  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!m.text().includes('Failed to load'))errs.push(m.text());});
+  await p.addInitScript(`window.__SEED=${JSON.stringify(seed)};`+mock);
+  await p.route('**/*',r=>r.request().url().startsWith('http://app/')?r.fulfill({body:html,contentType:'text/html'}):r.abort());
+  await p.goto('http://app/');await p.waitForTimeout(400);p.errs=errs;return p;
+}
+(async()=>{
+  const browser=await chromium.launch();
+  const sched={1:[90001,90002,90003,90004],2:[90001,90005,90006,90007]};
+  const control={cur:1,sched,ev:"",event:"דוגמה"};
+  const seedS={me:"s1",owner:false,docs:{"control/main":control,"entries/s1":{rows:{},ts:1,profile:{nick:"נועה",color:1,motto:"",joined:Date.now()}}}};
+  const s=await page(browser,seedS);
+  await s.click('#tab-entry');await s.fill('#fMatch','1');await s.fill('#fTeam','90001');
+  await s.click('.fseg[data-fk="aStart"] [data-v="B"]');
+  for(let i=0;i<3;i++)await s.click('.ctr[data-k="shotsHit"] .plus');
+  await s.click('.ctr[data-k="shotsMiss"] .plus');
+  await s.click('.fseg[data-fk="zone"] [data-v="far"]');
+  await s.click('.fseg[data-fk="defT"] [data-v="1"]');
+  ok((await s.textContent('#accHint')).includes('פגע ב־3 מתוך 4'),'stage2: accuracy hint');
+  await s.click('#formSave');await s.waitForTimeout(400);
+  const r=await s.evaluate(()=>window.__STORE["entries/s1"].rows["m1-t90001"]);
+  ok(r&&r.aStart==="B"&&r.shotsHit===3&&r.shotsMiss===1&&r.zone==="far"&&r.defT===1&&r.defended===false,'stage2: fields saved '+JSON.stringify(r&&{a:r.aStart,h:r.shotsHit,m:r.shotsMiss,z:r.zone,d:r.defT}));
+  ok(s.errs.length===0,'scout no errors '+s.errs.join('|'));
+  // manager with legacy + new rows + pit
+  const now=Date.now();
+  const rows2={"m2-t90001":{match:2,team:90001,ts:now,defended:true,tTips:2,aTips:1},"m1-t90002":{match:1,team:90002,ts:now,tTips:1}};
+  const seedM={me:"mgr",owner:true,docs:{"control/main":control,"entries/s1":await s.evaluate(()=>window.__STORE["entries/s1"]),"entries/s2":{rows:rows2,ts:1,pit:{p90001:{team:90001,ev:"",ts:now,drive:"mecanum",shooters:"1",mount:"turret",range:"108",lift:true,cap:3,aBalls:2,side:"front"}}}}};
+  const m=await page(browser,seedM,{width:1280,height:900});
+  await m.click('#tab-team');await m.fill('#tPick','90001');await m.waitForTimeout(300);
+  const tb=await m.textContent('#teamBody');
+  ok(tb.includes('75%')&&tb.includes('זמן בהגנה')&&tb.includes('על צריח'),'profile: team page shows accuracy, defense share, pit mount');
+  await m.click('#tab-admin');await m.waitForTimeout(300);
+  await m.fill('#simMatch','1');await m.click('[data-simexp="match"]');await m.waitForTimeout(300);
+  const dl=await m.evaluate(()=>window.__DL);
+  ok(dl.length===1&&dl[0].filename==='sim-match-1.json','export: match file downloaded');
+  const pk=JSON.parse(dl[0].data);
+  ok(pk.format==='apollo9662-scouting/match'&&pk.version===1&&pk.robots.length===4&&pk.alliances.red[0]===90001,'export: header and alliances');
+  const r1=pk.robots[0];
+  ok(r1.declared&&r1.declared.shooter_mount==='turret'&&r1.declared.max_range_in===108&&r1.declared.flower_lift===true&&r1.declared.capacity===3&&r1.declared.auto_tips===null&&r1.declared.shoots_moving===null&&r1.declared.confidence===0.5,'export: declared from pit, unknown = null');
+  ok(r1.measured&&r1.measured.accuracy.value===0.75&&r1.measured.defense_share.value===0.75&&r1.measured.auto_start.value==='B','export: measured values (legacy defended→2 merged) '+JSON.stringify(r1.measured&&{acc:r1.measured.accuracy,def:r1.measured.defense_share}));
+  ok(r1.measured.tips_per_match.confidence>0&&r1.measured.tips_per_match.confidence<=1,'export: confidence 0..1');
+  ok(pk.robots[3].measured===null&&pk.robots[3].declared===null,'export: unknown team has nulls');
+  await m.click('[data-simexp="event"]');await m.waitForTimeout(300);
+  const ev=JSON.parse((await m.evaluate(()=>window.__DL))[1].data);
+  ok(ev.format==='apollo9662-scouting/event'&&Object.keys(ev.schedule).length===2&&ev.schedule['1'].blue[1]===90004&&ev.robots.length===7,'export: event package');
+  ok(m.errs.length===0,'manager no errors '+m.errs.join('|'));
+  fs.writeFileSync(__dirname+'/sample-match.json',dl[0].data);fs.writeFileSync(__dirname+'/sample-event.json',(await m.evaluate(()=>window.__DL))[1].data);
+  await browser.close();
+  console.log(fails.length?fails.length+' FAILED':'ALL PASSED');process.exit(fails.length?1:0);
+})();

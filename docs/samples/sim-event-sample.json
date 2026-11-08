@@ -1,0 +1,274 @@
+{
+ "format": "apollo9662-scouting/event",
+ "version": 1,
+ "generated_at": "2026-11-08T13:03:32.084Z",
+ "event": "דוגמה",
+ "event_code": "",
+ "units": {
+  "time": "s",
+  "distance": "in",
+  "share": "0-1"
+ },
+ "schedule": {
+  "1": {
+   "red": [
+    90001,
+    90002
+   ],
+   "blue": [
+    90003,
+    90004
+   ]
+  },
+  "2": {
+   "red": [
+    90001,
+    90005
+   ],
+   "blue": [
+    90006,
+    90007
+   ]
+  }
+ },
+ "robots": [
+  {
+   "team": 90001,
+   "matches_seen": 2,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0.4,
+   "declared": {
+    "confidence": 0.5,
+    "drive": "mecanum",
+    "speed": null,
+    "capacity": 3,
+    "intake_from": null,
+    "intake_side": "front",
+    "shooters": 1,
+    "shooter_mount": "turret",
+    "shooter_wheels": null,
+    "max_range_in": 108,
+    "shoot_zones": null,
+    "shoots_moving": null,
+    "auto_aim": null,
+    "auto_starts": null,
+    "auto_leave": null,
+    "auto_park": null,
+    "auto_balls": 2,
+    "auto_tips": null,
+    "auto_programs": null,
+    "end_park": null,
+    "late_nectar": null,
+    "flower_lift": true,
+    "preferred_role": null,
+    "full_size": null
+   },
+   "measured": {
+    "cycle_s": null,
+    "tips_per_match": {
+     "value": 1.5,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "auto_tips": {
+     "value": 0.5,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "accuracy": {
+     "value": 0.75,
+     "confidence": 0.13,
+     "n": 1
+    },
+    "shots_per_match": {
+     "value": 4,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "auto_points": {
+     "value": 10,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "tele_points": {
+     "value": 20,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "end_points": {
+     "value": 0,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "total_points": {
+     "value": 30,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "auto_start": {
+     "value": "B",
+     "confidence": 0.2,
+     "n": 1
+    },
+    "main_shoot_zone": {
+     "value": "far",
+     "confidence": 0.2,
+     "n": 1
+    },
+    "auto_leave": {
+     "value": 0,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "auto_park": {
+     "value": 0,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "end_park": {
+     "value": 0,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "defense_share": {
+     "value": 0.75,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "reliability": {
+     "value": 1,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "fouls_points_per_match": {
+     "value": 0,
+     "confidence": 0.4,
+     "n": 2
+    },
+    "drive_rating": null
+   }
+  },
+  {
+   "team": 90002,
+   "matches_seen": 1,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0.2,
+   "declared": null,
+   "measured": {
+    "cycle_s": null,
+    "tips_per_match": {
+     "value": 1,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "auto_tips": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "accuracy": null,
+    "shots_per_match": null,
+    "auto_points": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "tele_points": {
+     "value": 20,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "end_points": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "total_points": {
+     "value": 20,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "auto_start": null,
+    "main_shoot_zone": null,
+    "auto_leave": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "auto_park": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "end_park": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "defense_share": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "reliability": {
+     "value": 1,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "fouls_points_per_match": {
+     "value": 0,
+     "confidence": 0.2,
+     "n": 1
+    },
+    "drive_rating": null
+   }
+  },
+  {
+   "team": 90003,
+   "matches_seen": 0,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0,
+   "declared": null,
+   "measured": null
+  },
+  {
+   "team": 90004,
+   "matches_seen": 0,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0,
+   "declared": null,
+   "measured": null
+  },
+  {
+   "team": 90005,
+   "matches_seen": 0,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0,
+   "declared": null,
+   "measured": null
+  },
+  {
+   "team": 90006,
+   "matches_seen": 0,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0,
+   "declared": null,
+   "measured": null
+  },
+  {
+   "team": 90007,
+   "matches_seen": 0,
+   "no_shows": 0,
+   "is_us": false,
+   "confidence": 0,
+   "declared": null,
+   "measured": null
+  }
+ ]
+}
