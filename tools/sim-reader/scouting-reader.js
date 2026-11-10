@@ -91,7 +91,7 @@ function create(opt){
   /* QR: מחרוזת מכל קוד שנסרק. מחזיר כמה חסרים, 0 כשהחבילה הושלמה, ו־-1 לקוד פגום */
   async function addQR(str){
     try{
-      const m=/^A9662:(\d+)\/(\d+):(\w+):([A-Za-z0-9_-]*)$/.exec(String(str||""));if(!m)return -1;
+      const m=/^A9662:(\d+)\/(\d+):(\w+):([A-Za-z0-9_-]*)$/.exec(String(str||"").trim());if(!m)return -1; /* סורק חיצוני מוסיף Enter או רווח בסוף */
       const i=+m[1],n=+m[2],id=m[3],data=m[4];
       if(!(n>=1&&n<=20&&i>=1&&i<=n))return -1;
       if(!qrParts.has(id)){if(qrParts.size>8)qrParts.clear();qrParts.set(id,{n,parts:new Map()});}

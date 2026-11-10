@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html dir="rtl" lang="he"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>סקאוטינג ביובאז</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
@@ -2918,6 +2918,7 @@ const median=a=>quant(a,.5);
 const r1=x=>Math.round(x*10)/10;
 const pct=x=>Math.round(x*100)+"%";
 const mx0=a=>{let m=a.length?-Infinity:0;for(const x of a)if(x>m)m=x;return m;};
+const mn0=a=>{let m=a.length?Infinity:0;for(const x of a)if(x<m)m=x;return m;};
 function phi(z){const t=1/(1+0.2316419*Math.abs(z));const d=0.3989423*Math.exp(-z*z/2);const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 /* סיכוי מדויק לפי ההתפלגות שנצפתה: כל צירוף של מאץ׳ מכל רובוט */
 /* מוחלק: בלי 0% או 100% כשיש מעט מאצ׳ים */
@@ -2930,8 +2931,13 @@ const S={role:null,me:null,myName:"",dbOk:false,canWrite:true,loaded:false,myExi
   docs:{},myRaw:{},pending:{},control:{cur:1,sched:{},assign:{},event:"",ev:"",scores:{},ignore:{},kudos:{},board:[],boardAt:0},teams:{},names:{},
   demo:false,demoData:null,tab:null,sort:"avgS",sortDir:-1,team:null,editId:null,struck:new Set(),
   flushing:false,again:false,failCount:0,lastErr:"",dirty:false,delAsk:false,prevAvg:new Map(),flashed:new Set()};
-const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+/* set מחזיר אם נשמר. כשהזיכרון מלא – מפנה קודם את העותקים של הענן (אפשר להוריד שוב) ומנסה שוב */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
+  set(k,v){let s;try{s=JSON.stringify(v);localStorage.setItem(k,s);return true;}catch(e){}
+    try{const ks=[];for(let i=0;i<localStorage.length;i++){const x=localStorage.key(i);if(/^a9662-cache:/.test(x))ks.push(x);}ks.forEach(x=>localStorage.removeItem(x));localStorage.setItem(k,s);return true;}catch(e){return false;}},
+  del(k){try{localStorage.removeItem(k);}catch(e){}}};
 S.struck=new Set(LS.get("bbz-struck",[]));
+const LS_OK=(()=>{try{localStorage.setItem("bbz-probe","1");localStorage.removeItem("bbz-probe");return true;}catch(e){return false;}})();
 const pendKey=()=>"bbz-pending:"+(S.me||"anon");
 const draftKey=()=>"bbz-draft:"+(S.me||"anon");
 
@@ -2993,13 +2999,24 @@ function mergedRaw(){
   for(const [id,r] of Object.entries(S.pending)){if(r===null)delete raw[id];else raw[id]=r;}
   return raw;
 }
-function mineMap(){
+/* זיכרון לחישובי הרשומות: מסך אחד קורא להם הרבה פעמים. התוצאה נשמרת כל עוד מקורות הנתונים לא הוחלפו
+   (המסמכים, הרשומות שלי, מסמך הבקרה, ההדגמה) וכל עוד אף רשומה ממתינה לא נוספה, נמחקה או הוחלפה */
+let dataMemo={deps:null,pend:null,vals:new Map()};
+function memoTick(k,f){
+  const deps=[S.docs,S.myRaw,S.control,S.demo,S.demoData,S.me,S.role];const pk=Object.keys(S.pending);
+  const same=dataMemo.deps&&deps.every((d,i)=>d===dataMemo.deps[i])&&pk.length===dataMemo.pend.length&&dataMemo.pend.every(([id,v])=>S.pending[id]===v);
+  if(!same)dataMemo={deps,pend:pk.map(id=>[id,S.pending[id]]),vals:new Map()};
+  if(!dataMemo.vals.has(k))dataMemo.vals.set(k,f());
+  return dataMemo.vals.get(k);
+}
+function mineMap(){return memoTick("mine",()=>{
   const raw=mergedRaw();
   const out={};
   for(const [id,r] of Object.entries(raw)){const o=readRow(id,r,S.me);if(o&&o.ev===curEv())out[id]=o;}
   return out;
-}
-function rawAll(){
+});}
+function rawAll(){return memoTick("raw",rawAllNow);}
+function rawAllNow(){
   if(S.demo)return S.demoData.entries;
   const out=[];const uids=new Set(Object.keys(S.docs));if(S.me)uids.add(S.me);
   for(const uid of uids){
@@ -3033,20 +3050,22 @@ function mergeGroup(g){
   return {...o,dups:all,spread:Math.max(...tot)-Math.min(...tot),bys:allBys,tipsVals:g.map(x=>pts(x).tips),tipsDiff:new Set(g.map(x=>pts(x).tips)).size>1};
 }
 const ignKey=r=>r.by+"|"+r.id;
-function allRows(){
+function allRows(){return memoTick("all",()=>{
   const ign=S.demo?{}:(S.control.ignore||{});
   const groups=new Map();
   for(const r of rawAll()){if(ign[ignKey(r)])continue;const k=r.match+"-"+r.team;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r);}
   return [...groups.values()].map(mergeGroup);
-}
+});}
 const entries=()=>isMgr()?allRows():Object.values(mineMap());
 const teamName=n=>(S.demo?S.demoData.names[n]:S.teams[n]?.name)||"";
 
 /* ── סטטיסטיקה ── */
 function cycleOf(e){
-  const t=(e.tipT||[]);if(t.length!==(e.tTips||0)||t.length<2)return null;
+  /* שני סקאוטרים שספרו 3 ו־4 נותנים חציון 3.5 – זה עדיין תואם לזמנים של מי שספר 4 */
+  const t=(e.tipT||[]);if(Math.abs(t.length-(e.tTips||0))>.5||t.length<2)return null;
   const s=t.filter(x=>x>=38&&x<=98).sort((a,b)=>a-b);if(s.length<2)return null;
-  const d=[];for(let i=1;i<s.length;i++)d.push(s[i]-s[i-1]);return median(d);
+  /* פחות מ־2 שניות בין היפוכים = לחיצה כפולה, לא מחזור */
+  const d=[];for(let i=1;i<s.length;i++)if(s[i]-s[i-1]>=2)d.push(s[i]-s[i-1]);return d.length?median(d):null;
 }
 function stats(list,noShows){
   const L=[...list].sort((a,b)=>a.match-b.match);
@@ -3074,7 +3093,7 @@ function stats(list,noShows){
 let statsCache={key:"",val:null};
 function allStats(){
   const E=entries();
-  const key=E.length+"|"+E.reduce((s,e)=>s+(e.ts||0)%100000+e.team*7+e.match,0)+"|"+S.demo+"|"+JSON.stringify(scores()).length+"|"+Object.keys(sched()).length+"|"+Object.keys(S.control.ignore||{}).length;
+  const key=E.length+"|"+E.reduce((s,e)=>s+(e.ts||0)%100000+e.team*7+e.match,0)+"|"+S.demo+"|"+JSON.stringify(scores())+"|"+JSON.stringify(sched())+"|"+Object.keys(S.control.ignore||{}).join();
   if(statsCache.key===key)return statsCache.val;
   const m=new Map(),ns=new Map();
   for(const e of E){if(e.noShow){ns.set(e.team,(ns.get(e.team)||0)+1);continue;}if(!m.has(e.team))m.set(e.team,[]);m.get(e.team).push(e);}
@@ -3086,6 +3105,9 @@ function allStats(){
   const K=2;
   for(const a of A){a.avgS=a.n?(a.n*a.avg+K*fieldAvg)/(a.n+K):fieldAvg;
     a.sdEff=Math.sqrt(((Math.max(0,a.n-1))*a.sd**2+3*pooled**2)/(Math.max(0,a.n-1)+3));}
+  /* אותו כיווץ לשלבים ולאמינות – בשבילם רשימת הבחירה */
+  for(const k of ["auto","tele","end","rel"]){const f=played.length?mean(played.map(a=>a[k])):0;
+    for(const a of A){const w=k==="rel"?a.n+(a.noShows||0):a.n;a[k+"S"]=w?(w*a[k]+K*f)/(w+K):f;}}
   const opr=computeOPR(A.map(a=>a.team));
   for(const a of A)a.opr=opr?opr.get(a.team):null;
   const val={A,fieldAvg,pooled,oprN:opr?opr.rows:0,
@@ -3523,7 +3545,7 @@ let stripLast=null,stripKey="";
 function renderStrip(ph){
   const el=$("shotStrip");const auto=ph==="auto",tele=["trans","tele","end"].includes(ph);
   el.hidden=!(auto||tele);if(el.hidden)return;
-  const B=auto?[["aLeave","יצא",F.aLeave?"✓":"",1],["aTips","הפך",F.aTips||0,0],["aPark","חנה",F.aPark?"✓":"",1]]:[["shotsHit","פגע",F.shotsHit||0,0],["shotsMiss","החטיא",F.shotsMiss||0,0],["tTips","הפך",F.tTips||0,0]];
+  const B=auto?[["aLeave","יצא",F.aLeave?"✓":"",1],["aTips","הפך",F.aTips||0,0],["aPark","חנה",F.aPark?"✓":"",1]]:[["shotsHit","פגע",F.shotsHit||0,0],["shotsMiss","החטיא",F.shotsMiss||0,0],["tTips","הפך (+פגע)",F.tTips||0,0]];
   const key=B.map(b=>b[0]+b[2]).join()+!!stripLast;if(key===stripKey)return;stripKey=key;
   el.innerHTML=B.map(([k,l,v,tg])=>`<button type="button" data-strip="${k}" ${tg?`data-stog="1" class="${F[k]?"on":""}"`:""}>${l} <b>${v}</b></button>`).join("")+`<button type="button" class="und" data-stripundo="1" ${stripLast?"":"disabled"}>בטל</button>`;
 }
@@ -3546,7 +3568,8 @@ function saveDraft(){
 }
 function clearDraft(){LS.del(draftKey());}
 function restoreDraft(){
-  const d=LS.get(draftKey(),null);if(!d||Date.now()-(d.at||0)>45*60000)return;
+  /* טיוטה נשמרת 4 שעות – גם אחרי ארוחת צהריים, אבל לא טופס של אתמול */
+  const d=LS.get(draftKey(),null);if(!d||Date.now()-(d.at||0)>4*3600000)return;
   F={...BLANK,...d.F,tipT:[...(d.F?.tipT||[])]};if(d.F&&d.F.defT==null)F.defT=d.F.defended?2:0;if(d.F&&d.F.sv==null)F.sv=false;$("fMatch").value=d.match||"";$("fTeam").value=d.team||"";$("fNotes").value=d.notes||"";
   S.editId=d.editId||null;editBy=d.editBy||null;S.dirty=true;
   if(d.t0&&Date.now()-d.t0<175000)startClock(d.t0);
@@ -3707,10 +3730,10 @@ function renderAlly(){
   const isTaken=t=>S.struck.has(t)||playoffTeams().has(t);
   const avail=A.filter(x=>!isTaken(x.team));
   const rng=k=>{const v=avail.map(x=>x[k]);const lo=Math.min(...v,0),hi=Math.max(...v,1e-9);return x=>(x[k]-lo)/Math.max(1e-9,hi-lo);};
-  const nA=rng("auto"),nT=rng("tele"),nE=rng("end"),nR=rng("rel");
+  const nA=rng("autoS"),nT=rng("teleS"),nE=rng("endS"),nR=rng("relS");
   const fitOf=x=>{if(!us||x.team===US)return null;const m=allianceModel([us,x],[]);return {m,score:m.mu+20*(m.pSw+m.pP1+m.pP2)};};
   const fits=new Map(A.map(x=>[x.team,fitOf(x)]));
-  const fv=avail.map(x=>fits.get(x.team)?.score).filter(v=>v!=null);const flo=Math.min(...fv,0),fhi=Math.max(...fv,1e-9);
+  const fv=avail.map(x=>fits.get(x.team)?.score).filter(v=>v!=null);const flo=fv.length?Math.min(...fv):0,fhi=fv.length?Math.max(...fv):1;
   const tot=Math.max(.001,w.a+w.t+w.e+w.r+(us?w.f:0));
   const sc=A.map(x=>{const f=fits.get(x.team);const fn=f?(f.score-flo)/Math.max(1e-9,fhi-flo):0;
       return {...x,fit:f,score:100*(w.a*nA(x)+w.t*nT(x)+w.e*nE(x)+w.r*nR(x)+(us&&f?w.f*fn:0))/tot};})
@@ -4135,8 +4158,8 @@ function render(){
   renderTabs();
   $("demoBanner").hidden=!S.demo;
   const pendN=Object.keys(S.pending).length+Object.keys(S.pitPending).length+(S.profilePending?1:0);
-  $("failBanner").hidden=!(S.failCount>=2&&pendN);
-  if(!$("failBanner").hidden)$("failTxt").textContent=pendN+" רשומות לא נשלחות כבר כמה ניסיונות"+(S.lastErr?" · "+S.lastErr:"")+". הן שמורות בטלפון.";
+  $("failBanner").hidden=!((S.failCount>=2||S.storeFail)&&pendN);
+  if(!$("failBanner").hidden)$("failTxt").textContent=S.storeFail?pendN+" רשומות עוד לא נשלחו, והזיכרון בטלפון מלא. לא לסגור ולא לרענן את הדף עד שהן נשלחות.":pendN+" רשומות לא נשלחות כבר כמה ניסיונות"+(S.lastErr?" · "+S.lastErr:"")+". הן שמורות בטלפון.";
   const known=new Set([...entries().map(e=>e.team),...(S.demo?[]:Object.keys(S.teams).map(Number)),...Object.values(sched()).flat()]);
   const tl=[...known].filter(Boolean).sort((a,b)=>a-b).map(t=>t+":"+teamName(t)).join("|");
   if(tl!==lastTeamList&&document.activeElement?.getAttribute("list")!=="teamList"){lastTeamList=tl;$("teamList").innerHTML=[...known].filter(Boolean).sort((a,b)=>a-b).map(t=>`<option value="${t}">${esc(teamName(t))}</option>`).join("");}
@@ -4162,10 +4185,13 @@ function liveTxt(){
   if(S.demo){$("liveTxt").textContent="הדגמה";return;}
   if(!db){$("liveTxt").textContent=S.role?"לא מחובר":"מתחבר…";return;}
   if(S.failCount>=2&&pend){el.classList.add("err");$("liveTxt").textContent=pend+" לא נשלחו";return;}
-  if(pend){el.classList.add("wait");$("liveTxt").textContent=pend+" ממתינות לשליחה";return;}
+  if(pend){const old=mn0(Object.values(S.pending).filter(r=>r&&r.ts).map(r=>r.ts));
+    /* בלי רשת זה רגיל, אבל אחרי חצי שעה כדאי לחפש רשת (נקודה חמה מטלפון אחר) */
+    if(old&&Date.now()-old>30*60000){el.classList.add("err");$("liveTxt").textContent=pend+" ממתינות כבר חצי שעה · לחפש רשת";return;}
+    el.classList.add("wait");$("liveTxt").textContent=pend+" ממתינות לשליחה";return;}
   if(S.listenErr){el.classList.add("wait");$("liveTxt").textContent="מתחבר מחדש…";return;}
   const cm=CLOUD()?.status().mode;
-  if(cm&&cm!=="live"){el.classList.add(cm==="offline"?"err":"wait");$("liveTxt").textContent=cloudModeTxt(cm);return;}
+  if(cm&&cm!=="live"){el.classList.add("wait");$("liveTxt").textContent=cloudModeTxt(cm);return;}
   el.classList.add("on");
   const last=mx0(rawAll().map(e=>e.ts||0));
   $("liveTxt").textContent=last?"חי · "+ago(last):"חי";
@@ -4285,11 +4311,12 @@ async function flush(){
     if(prof&&S.profilePending===prof){S.myProfile=prof;S.profilePending=null;LS.del(profKey());}
     S.myExists=true;
     for(const [id,r] of Object.entries(snap))if(S.pending[id]===r)delete S.pending[id];
-    S.myRaw={...S.myRaw,...patch};LS.set(pendKey(),S.pending);
+    S.myRaw={...S.myRaw,...patch};if(LS.set(pendKey(),S.pending))S.storeFail=false;
     for(const [id,r] of Object.entries(psnap))if(S.pitPending[id]===r)delete S.pitPending[id];
     S.myPit={...S.myPit,...psnap};LS.set(pitPendKey(),S.pitPending);S.failCount=0;S.lastErr="";
   }catch(e){
-    S.failCount++;
+    /* בלי רשת זה מצב רגיל, לא תקלה: לא סופרים אותו, והפס האדום לא עולה */
+    if(e?.code!=="unavailable")S.failCount++;
     if(e?.code==="invalid_argument"){S.lastErr="אין הרשאת כתיבה";const c=user?await user.can("data.write").catch(()=>null):null;if(c===false)S.canWrite=false;}
     else if(e?.code==="quota_exceeded")S.lastErr="המאגר מלא";
     else if(e?.code==="revoked")S.lastErr="הגישה לדף השתנתה";
@@ -4320,12 +4347,15 @@ function save(){
   const body={...clean(F),match,team,ts:Date.now(),ev:curEv()};
   const mine=!editBy||editBy===S.me;
   if(S.editId&&mine&&S.editId!==id)S.pending[S.editId]=null;
-  S.pending[id]=body;LS.set(pendKey(),S.pending);
+  S.pending[id]=body;const stored=LS.set(pendKey(),S.pending);
   if(isMgr()&&!S.teams[team]&&db)db.doc("teams/"+team).set({num:team,name:""}).catch(()=>{});
   /* מנהל שמתקן רשומה של סקאוטר: המקור יוצא מהחישוב והתיקון שלו נכנס */
   if(isMgr()&&S.editId&&editBy&&editBy!==S.me){const ig={...(S.control.ignore||{})};ig[editBy+"|"+S.editId]=true;writeControl({ignore:ig});}
   stopClock();
-  toast(navigator.onLine===false?"נשמר בטלפון · יישלח כשתחזור הרשת":"נשמר · מאץ׳ "+match+" קבוצה "+team);
+  /* הזיכרון בטלפון מלא: הרשומה רק בזיכרון של הדף. לא אומרים "נשמר", ומבקשים לא לסגור */
+  S.storeFail=LS_OK&&!stored;
+  if(S.storeFail)toast("הזיכרון בטלפון מלא – לא לסגור את הדף עד שהרשומה תישלח");
+  else toast(navigator.onLine===false?"נשמר בטלפון · יישלח כשתחזור הרשת":"נשמר · מאץ׳ "+match+" קבוצה "+team);
   buzz(30);
   const slot=F.slot||S.control.assign?.[S.me]||"";
   S.dirty=false;clearDraft();
@@ -4367,27 +4397,33 @@ function onControl(sn){
   prevCur=S.control.cur;
   render();
 }
+/* הרשמה מחדש מנתקת קודם את כל המאזינים הקודמים, ויש רק טיימר ניסיון אחד.
+   בלי זה כל שגיאה הכפילה את המאזינים, עד שהדף קפא */
+let subOff=[],subRetryT=null;
 function subscribe(){
   S.listenErr=false;
-  const retry=()=>{S.listenErr=true;render();setTimeout(subscribe,5000);};
+  for(const off of subOff)try{if(typeof off==="function")off();}catch(e){}
+  subOff=[];
+  const retry=()=>{S.listenErr=true;render();if(subRetryT)return;subRetryT=setTimeout(()=>{subRetryT=null;subscribe();},5000);};
+  const keep=off=>{subOff.push(off);};
   try{
-    db.doc("control/main").onSnapshot(onControl,()=>{});
-    db.collection("teams").onSnapshot(sn=>{const t={};sn.docs.forEach(x=>{const v=x.data()||{};const n=N(v.num,99999);if(n)t[n]={num:n,name:String(v.name||"").slice(0,40)};});S.teams=t;render();},()=>{});
+    keep(db.doc("control/main").onSnapshot(onControl,()=>{}));
+    keep(db.collection("teams").onSnapshot(sn=>{const t={};sn.docs.forEach(x=>{const v=x.data()||{};const n=N(v.num,99999);if(n)t[n]={num:n,name:String(v.name||"").slice(0,40)};});S.teams=t;render();},()=>{}));
     if(isMgr()){
-      db.collection("entries").onSnapshot(sn=>{
+      keep(db.collection("entries").onSnapshot(sn=>{
         const docs={};sn.docs.forEach(x=>{const d=x.data()||{};docs[x.id]={rows:(d.rows&&typeof d.rows==="object")?d.rows:{},pit:(d.pit&&typeof d.pit==="object")?d.pit:{},ts:+d.ts||0,profile:cleanProfile(d.profile)};});S.docs=docs;
         if(S.me&&docs[S.me]){S.myRaw=docs[S.me].rows;S.myPit=docs[S.me].pit;S.myProfile=docs[S.me].profile;S.myExists=true;}
         if(!sn.metadata.fromCache||S.myExists)S.loaded=true;
         statsCache.key="";resolveNames();render();flush();
-      },retry);
+      },retry));
     }else if(S.me){
       let greeted=false;
-      db.doc("entries/"+S.me).onSnapshot(sn=>{
+      keep(db.doc("entries/"+S.me).onSnapshot(sn=>{
         if(sn.exists){const d=sn.data()||{};S.myRaw=(d.rows&&typeof d.rows==="object")?d.rows:{};S.myPit=(d.pit&&typeof d.pit==="object")?d.pit:{};S.myProfile=cleanProfile(d.profile);S.myExists=true;S.loaded=true;}
         else if(!sn.metadata.fromCache){S.loaded=true;S.myExists=false;
           if(!greeted&&S.canWrite&&!Object.keys(S.pending).length&&!Object.keys(S.pitPending).length){greeted=true;db.doc("entries/"+S.me).set({rows:{},ts:Date.now()}).then(()=>{S.myExists=true;}).catch(()=>{});}}
         render();flush();
-      },retry);
+      },retry));
     }
   }catch(e){retry();}
 }
@@ -4728,12 +4764,15 @@ let scoutsCache=null;
 async function loadScouts(){try{scoutsCache=await CLOUD().listScouts();}catch(e){scoutsCache=null;}if(S.tab==="admin")renderSimSync();}
 function renderSimSync(){
   const el=$("simSync");if(!el)return;
+  /* הקוד שבשדה (גם קוד אקראי שעוד לא נשמר) לא נמחק כשהמסך מתעדכן */
+  const jc=$("joinCode")?.value||"";if(jc)setTimeout(()=>{const x=$("joinCode");if(x&&!x.value)x.value=jc;},0);
   if(!CLOUD()){el.innerHTML=`<div class="flat" style="font-size:13px">כאן (בארטיפקט) אין סנכרון חי. בגרסת האתר הפרופילים מתפרסמים לסימולטור לבד.</div>`;return;}
   const st=CLOUD().status();
   const line=pubState.err?`<span class="chip bad">${esc(pubState.err)}</span>`:pubState.at?`<span class="chip good">פורסם ${ago(pubState.at)} · ${pubState.changed} קבוצות השתנו</span>`:`<span class="chip">ממתין לשינוי ראשון</span>`;
   el.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="chip ${st.mode==="live"?"good":st.mode==="offline"?"bad":"warn"}">חיבור: ${cloudModeTxt(st.mode)}</span>${line}
     <button class="btn" data-pubnow="1">פרסם עכשיו</button></div>
-    <div class="row" style="margin-top:10px"><div class="field"><label for="joinCode">קוד הצטרפות לסקאוטרים</label><input class="inp" id="joinCode" maxlength="32" autocomplete="off" placeholder="לפחות 8 תווים" style="width:160px"></div>
+    <div class="row" style="margin-top:10px"><div class="field"><label for="joinCode">קוד הצטרפות לסקאוטרים</label><input class="inp" id="joinCode" maxlength="32" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" dir="ltr" placeholder="לפחות 8 תווים" style="width:160px"></div>
+    <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-gencode="1">קוד אקראי</button></div>
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-joincode="1">שמור קוד</button></div>
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-signout="1">התנתק</button></div></div>
     <div style="margin-top:12px"><div class="lbl">סקאוטרים שהצטרפו ${scoutsCache?"("+scoutsCache.length+")":""}</div>
@@ -4741,9 +4780,12 @@ function renderSimSync(){
     <div class="flat" style="font-size:12px;margin-top:6px">הסרה מוחקת גם את הרשומות שלו, והן כבר לא נספרות בסטטיסטיקה ובסימולטור.</div></div>`;
 }
 document.addEventListener("click",async ev=>{
-  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout]");if(!t)return;
+  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-gencode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout]");if(!t)return;
   if(t.dataset.pubnow){pubKey="";clearTimeout(pubT);publishNow();}
-  else if(t.dataset.joincode){const c=($("joinCode")?.value||"").trim();if(c.length<4){toast("קוד של לפחות 4 תווים");return;}
+  /* 10 תווים, אותיות גדולות ומספרים בלי תווים שמתבלבלים (O/0, I/1). הכניסה לא רגישה לאותיות */
+  else if(t.dataset.gencode){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";const r=new Uint32Array(10);crypto.getRandomValues(r);
+    $("joinCode").value=[...r].map(x=>A[x%A.length]).join("");$("joinCode").focus();toast("נוצר קוד. לרשום אותו, ואז ״שמור קוד״");}
+  else if(t.dataset.joincode){const c=($("joinCode")?.value||"").trim();
     if(c.length<8){toast("קוד של לפחות 8 תווים");return;}
     try{await CLOUD().setJoinCode(c);toast("הקוד נשמר. סקאוטרים חדשים נכנסים איתו");$("joinCode").value="";}catch(e){toast("שמירת הקוד נכשלה");}}
   else if(t.dataset.signout){if(signArm!=="1"){signArm="1";toast("לחץ שוב כדי להתנתק");setTimeout(()=>signArm="",4000);return;}

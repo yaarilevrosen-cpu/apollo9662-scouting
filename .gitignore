@@ -16,3 +16,4 @@ tools/tests/shots/
 tools/tests/sample-*.json
 node_modules/
 site/
+__pycache__/

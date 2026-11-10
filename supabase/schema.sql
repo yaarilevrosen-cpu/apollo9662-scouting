@@ -143,11 +143,14 @@ begin
   insert into public.join_attempts(uid) values (auth.uid());
   delete from public.join_attempts where at < now() - interval '1 day';
   select value into want from public.settings where key = 'join_code';
-  if want is null or length(want) < 8 or code is distinct from want then return 'bad_code'; end if;
+  -- לא רגיש לאותיות ולרווחים בקצוות: המקלדת בטלפון מגדילה את האות הראשונה לבד
+  want := upper(btrim(want));
+  if want is null or length(want) < 8 or upper(btrim(coalesce(code,''))) <> want then return 'bad_code'; end if;
   if (select count(*) from public.members where role = 'scout') >= 60 then return 'full'; end if;
   -- בלי תווי בקרה וכיווניות שאפשר להתחזות בהם
   nm := btrim(regexp_replace(coalesce(display_name,''), '[\u0001-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]', '', 'g'));
   insert into public.members(uid, role, name) values (auth.uid(), 'scout', left(nm, 40));
+  delete from public.join_attempts where uid = auth.uid();
   return 'scout';
 end $$;
 revoke all on function public.join_team(text, text) from public;
@@ -158,6 +161,7 @@ create or replace function public.set_join_code(code text) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_manager() then raise exception 'not_manager'; end if;
+  code := btrim(code);
   if code is null or length(code) < 8 or length(code) > 32 then raise exception 'bad_code'; end if;
   insert into public.settings(key, value) values ('join_code', code)
     on conflict (key) do update set value = excluded.value;

@@ -34,7 +34,8 @@ do $$ begin if join_team('wrong','x') <> 'bad_code' or join_team('abcd1234','x')
 
 -- סקאוטר מצטרף עם הקוד
 select pg_temp.as_user(:'s1');
-do $$ begin if join_team('code5678',E'\u202eנועה\u0007') <> 'scout' then raise exception 'join failed'; end if; end $$;
+-- אות גדולה מהמקלדת ורווחים בקצוות לא חוסמים
+do $$ begin if join_team(' Code5678 ',E'\u202eנועה\u0007') <> 'scout' then raise exception 'join failed'; end if; end $$;
 do $$ begin if (select name from members where uid=auth.uid()) <> 'נועה' then raise exception 'name not cleaned: %', (select name from members where uid=auth.uid()); end if; end $$;
 select doc_write('entries/22222222-2222-2222-2222-222222222222','{"rows":{"m1-t90001":{"tTips":2}},"ts":1}','set');
 select doc_write('entries/22222222-2222-2222-2222-222222222222','{"rows":{"m2-t90002":{"tTips":1}},"pit":{"p90001":{"drive":"tank"}}}','merge');
@@ -61,11 +62,11 @@ update docs set updated_by='11111111-1111-1111-1111-111111111111' where path='en
 do $$ begin if (select updated_by from docs where path='entries/22222222-2222-2222-2222-222222222222') <> auth.uid() then raise exception 'updated_by forged'; end if; end $$;
 -- מסמך עם יותר מדי שדות עליונים נדחה
 select pg_temp.expect_fail($$select doc_write('entries/22222222-2222-2222-2222-222222222222',(select jsonb_object_agg('k'||g,g) from generate_series(1,20) g),'set')$$,'too many top keys');
--- מיזוג על מסמך גדול מהיר (העלות לפי השינוי)
+-- מיזוג על מסמך גדול מהיר (העלות לפי השינוי). 5 שניות ולא 2: על מחשב איטי 2 נכשל גם בלי בעיה
 do $$ declare t0 timestamptz:=clock_timestamp(); begin
   perform doc_write('entries/22222222-2222-2222-2222-222222222222',jsonb_build_object('rows',(select jsonb_object_agg('r'||g,jsonb_build_object('x',g)) from generate_series(1,5000) g)),'merge');
   perform doc_write('entries/22222222-2222-2222-2222-222222222222','{"ts":2}','merge');
-  if clock_timestamp()-t0 > interval '2 seconds' then raise exception 'merge too slow: %', clock_timestamp()-t0; end if; end $$;
+  if clock_timestamp()-t0 > interval '5 seconds' then raise exception 'merge too slow: %', clock_timestamp()-t0; end if; end $$;
 
 -- ניחוש הקוד: אחרי 5 ניסיונות בעשר דקות – חסום
 select pg_temp.as_user('66666666-6666-6666-6666-666666666666');

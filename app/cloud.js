@@ -21,13 +21,18 @@ function setMode(m,err){if(state.mode!==m){state.mode=m;state.since=Date.now();}
 const cacheGet=k=>{try{return JSON.parse(localStorage.getItem(CACHE+k)||"null");}catch(e){return null;}};
 const cacheSet=(k,v)=>{try{localStorage.setItem(CACHE+k,JSON.stringify(v));}catch(e){}};
 const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
+const CODES=["not_found","permission_denied","bad_code","too_big","not_configured","unavailable"];
 function errCode(e){
+  /* שגיאה שכבר עטופה (fail) שומרת על הקוד שלה */
+  if(e&&CODES.includes(e.code))return e.code;
   const m=String(e&&(e.message||e.code||e)||"");
   if(/not_found/.test(m))return "not_found";
   if(/row-level security|permission|42501|not_manager|PGRST301|JWT/i.test(m))return "permission_denied";
   if(/bad_code/.test(m))return "bad_code";
   if(/too_big/.test(m))return "too_big";
-  if(/Failed to fetch|NetworkError|network|fetch|timeout|abort|ECONN/i.test(m)||navigator.onLine===false)return "unavailable";
+  if(/not_configured/.test(m))return "not_configured";
+  /* "Load failed" – כך ספארי באייפון מדווח על רשת בלי אינטרנט */
+  if(/Failed to fetch|NetworkError|network|fetch|timeout|abort|ECONN|Load failed/i.test(m)||navigator.onLine===false)return "unavailable";
   return "unknown";
 }
 const fail=e=>{const c=errCode(e);const o=new Error(c);o.code=c;o.cause=e;return o;};
@@ -48,11 +53,27 @@ function sb(){
 const watchers=new Set(); /* {kind:"doc"|"col", key, cb, err} */
 function snapDoc(path,row,fromCache){return {exists:!!row,id:path.split("/")[1],data:()=>clone(row?row.data:undefined),metadata:{fromCache:!!fromCache}};}
 function snapCol(rows,fromCache){return {docs:rows.map(r=>({id:r.doc_id,data:()=>clone(r.data)})),empty:!rows.length,size:rows.length,metadata:{fromCache:!!fromCache}};}
+/* אוסף: קודם רק הנתיבים וזמני העדכון (קטן), ואז התוכן רק של מה שהשתנה מאז הפעם הקודמת.
+   בלי זה כל שינוי של סקאוטר אחד הוריד מחדש את כל הרשומות של כולם */
+const lastCol=new Map();
 async function fetchKey(kind,key){
-  const q=sb().from("docs").select("path,doc_id,data,updated_at");
-  const {data,error}=kind==="doc"?await q.eq("path",key).limit(1):await q.eq("coll",key);
+  if(kind==="doc"){
+    const {data,error}=await sb().from("docs").select("path,doc_id,data,updated_at").eq("path",key).limit(1);
+    if(error)throw error;return data[0]||null;
+  }
+  let prev=lastCol.get(key)||cacheGet("col:"+key);if(!Array.isArray(prev))prev=[];
+  const byPath=new Map(prev.map(r=>[r.path,r]));
+  const {data:heads,error}=await sb().from("docs").select("path,updated_at").eq("coll",key);
   if(error)throw error;
-  return kind==="doc"?(data[0]||null):data;
+  heads.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+  const need=heads.filter(h=>{const o=byPath.get(h.path);return !o||o.updated_at!==h.updated_at;}).map(h=>h.path);
+  const fresh=new Map();
+  for(let i=0;i<need.length;i+=40){
+    const {data,error:e2}=await sb().from("docs").select("path,doc_id,data,updated_at").in("path",need.slice(i,i+40));
+    if(e2)throw e2;for(const r of data)fresh.set(r.path,r);
+  }
+  const rows=heads.map(h=>fresh.get(h.path)||byPath.get(h.path)).filter(Boolean);
+  lastCol.set(key,rows);return rows;
 }
 const inflight=new Map();
 async function refresh(kind,key){
@@ -60,9 +81,11 @@ async function refresh(kind,key){
   const p=(async()=>{
     try{
       const v=await fetchKey(kind,key);
+      const sig=JSON.stringify(kind==="doc"?(v&&[v.updated_at,v.data]):v.map(r=>[r.path,r.updated_at]));
       cacheSet(id,v);state.lastOk=Date.now();
       if(state.mode==="offline")setMode(rtLive?"live":"poll");
-      for(const w of watchers)if(w.kind===kind&&w.key===key)w.cb(kind==="doc"?snapDoc(key,v,false):snapCol(v,false));
+      /* לא מעדכנים מאזין שכבר קיבל בדיוק את אותו מצב – אחרת הבדיקה כל דקה מציירת את כל המסך מחדש */
+      for(const w of watchers)if(w.kind===kind&&w.key===key&&w.sig!==sig){w.sig=sig;w.cb(kind==="doc"?snapDoc(key,v,false):snapCol(v,false));}
     }catch(e){
       const c=errCode(e);
       if(c==="unavailable"){setMode("offline");}
@@ -113,7 +136,13 @@ async function write(path,data,mode){
   await ready;
   if(navigator.onLine===false)throw fail("unavailable");
   const {error}=await sb().rpc("doc_write",{p_path:path,p_data:data,p_mode:mode});
-  if(error)throw fail(error);
+  if(error){
+    /* הכתיבה נכשלה: המסך כבר הציג את השינוי, אז שולחים שוב את מה שבאמת בענן */
+    const coll0=path.split("/")[0];
+    for(const w of watchers)if((w.kind==="doc"&&w.key===path)||(w.kind==="col"&&w.key===coll0))w.sig=undefined;
+    refresh("doc",path);if([...watchers].some(w=>w.kind==="col"&&w.key===coll0))refresh("col",coll0);
+    throw fail(error);
+  }
   state.lastOk=Date.now();
   const coll=path.split("/")[0];refresh("doc",path);if([...watchers].some(w=>w.kind==="col"&&w.key===coll))refresh("col",coll);
 }
@@ -144,7 +173,7 @@ async function gate(){
     const box=document.createElement("div");box.id="cloudGate";box.setAttribute("dir","rtl");
     box.innerHTML=`<div class="cg-card"><h2>סקאוטינג ביובאז</h2>
       <form id="cgJoin"><label>השם שלך<input id="cgName" maxlength="40" autocomplete="nickname" required></label>
-      <label>קוד הקבוצה<input id="cgCode" maxlength="32" autocomplete="off" required></label>
+      <label>קוד ההצטרפות<input id="cgCode" maxlength="32" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr" required></label>
       <button type="submit">כניסה</button></form>
       <details><summary>כניסת מנהל</summary><form id="cgMgr"><label>מייל<input id="cgMail" type="email" required dir="ltr"></label>
       <label>סיסמה<input id="cgPass" type="password" required dir="ltr"></label><button type="submit">כניסה</button></form></details>
@@ -202,7 +231,13 @@ function pendingCount(){let n=0;try{for(let i=0;i<localStorage.length;i++){const
     }
     if(!m)await gate();
     readyResolve();
-  }catch(e){try{console.warn("cloud start",e&&(e.message||e));}catch(_){}setMode("offline",errCode(e));readyReject(fail(e));}
+  }catch(e){try{console.warn("cloud start",e&&(e.message||e));}catch(_){}
+    const c=errCode(e);
+    /* האתר לא מחובר לענן: לא מעמידים פנים שזה "בלי רשת". אומרים מה חסר ומפנים לגיבוי */
+    if(c==="not_configured")domReady().then(()=>{const d=document.createElement("div");d.setAttribute("dir","rtl");d.setAttribute("role","alert");
+      d.style.cssText="position:sticky;top:0;z-index:9998;padding:14px 16px;background:#c94a3d;color:#fff;font:600 15px system-ui,sans-serif";
+      d.textContent="האתר עוד לא מחובר לענן, ולכן אי אפשר לאסוף בו נתונים. להשתמש בארטיפקט ״סקאוטינג ביובאז״ ולהודיע למנהל.";document.body.prepend(d);});
+    setMode("offline",c);readyReject(fail(e));}
 })();
 
 /* ── הממשק שהאפליקציה מכירה ── */

@@ -1,26 +1,59 @@
 # בונה את גרסת האתר (app + cloud.js) ומעלה לגיטהאב Pages. אין כאן נתונים או סודות.
+# סדר: בדיקות → בנייה (כולל בדיקה שההגדרות מולאו ושהמפתח ציבורי) → העלאה. נכשל שלב – לא מעלים.
 name: site
 on:
   push:
     branches: [main]
-    paths: ["app/**", "tools/build-site.py", ".github/workflows/pages.yml"]
+    paths: ["app/**", "supabase/**", "tools/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
+# הרשאות מינימליות. רק שלב ההעלאה מקבל הרשאת כתיבה לאתר
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency: { group: pages, cancel-in-progress: true }
+concurrency: { group: pages, cancel-in-progress: false }
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      # הסכמה רצה פעמיים, כדי לוודא שהרצה חוזרת לא שוברת כלום, ואז בדיקות ההרשאות
+      - name: הרשאות במאגר
+        env: { PGPASSWORD: postgres }
+        run: >
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1
+          -f supabase/tests/stub-supabase.sql -f supabase/schema.sql -f supabase/schema.sql
+          -f supabase/tests/rls.test.sql
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: התקנת דפדפן לבדיקות
+        run: npm i --no-save --ignore-scripts playwright@1.63.0 && npx playwright install --with-deps chromium
+      - name: בדיקות דפדפן
+        run: |
+          node tools/tests/pit.test.js app/index.html
+          node tools/tests/profile.test.js app/index.html
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - run: python3 tools/build-site.py
+        env: { REQUIRE_CONFIG: "1" }
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment: { name: github-pages }
     steps:
       - uses: actions/deploy-pages@v4
