@@ -36,6 +36,7 @@
     "intake_from": null,
     "intake_side": "front",
     "shooters": 1,
+    "shoot_balls": "both",
     "shooter_mount": "turret",
     "shooter_wheels": null,
     "max_range_in": 108,

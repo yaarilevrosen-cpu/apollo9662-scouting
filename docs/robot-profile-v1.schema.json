@@ -238,6 +238,7 @@
         "intake_from",
         "intake_side",
         "shooters",
+        "shoot_balls",
         "shooter_mount",
         "max_range_in",
         "shoot_zones",
@@ -450,6 +451,15 @@
         },
         "confidence": {
           "const": 0.5
+        },
+        "shoot_balls": {
+          "enum": [
+            "pollen",
+            "both",
+            "nectar",
+            null
+          ],
+          "description": "אילו כדורים הרובוט יורה: רק פולן, גם פולן וגם נקטר, או רק נקטר. null = לא נשאל, או רובוט בלי יורה"
         }
       }
     },

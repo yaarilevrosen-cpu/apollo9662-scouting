@@ -40,6 +40,7 @@
 | `intake_from` | רשימה: `flower`, `floor`, `human` |
 | `intake_side` | `front`, `back`, `side` |
 | `shooters` | 0, 1, 2 |
+| `shoot_balls` | `pollen` (רק פולן), `both` (פולן ונקטר), `nectar` (רק נקטר). חדש ב־14.11.2026, תוספת לגרסה 1 |
 | `shooter_mount` | `fixed`, `turret` |
 | `shooter_wheels` | `one`, `two`, `other` – כמה גלגלים מעיפים את הכדור, לא כמה יורים |
 | `max_range_in` | 36, 72, 108, 144 (כל הזירה) |

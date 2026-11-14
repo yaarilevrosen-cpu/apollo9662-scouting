@@ -92,6 +92,7 @@ section.view{padding-top:12px;display:grid;gap:18px}
 .grid{display:grid;gap:18px;grid-template-columns:repeat(12,minmax(0,1fr))}
 .c12{grid-column:span 12}.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}
 @media (max-width:960px){.c8,.c7,.c6,.c5,.c4{grid-column:span 12}}
+.pit-key{margin:8px 0;padding:10px 12px;border:2px solid var(--honey);border-radius:12px}
 .pit-say{margin:10px 0;padding:12px 14px;border-radius:12px;background:var(--honey-soft);color:var(--honey-ink);font-size:15px;line-height:1.5}
 .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .mode-card{display:grid;gap:8px;text-align:start;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:20px;min-height:150px;cursor:pointer;color:var(--ink);font:inherit;box-shadow:var(--shadow)}
@@ -4461,23 +4462,27 @@ function subscribe(){
 const PIT_ONE={drive:[["mecanum","מקנום"],["tank","טנק"],["other","אחר"]],speed:[["slow","איטי"],["mid","בינוני"],["fast","מהיר"]],
   shooter:[["one","גלגל אחד"],["two","שני גלגלים"],["other","אחר"]],role:[["scorer","לנקד"],["defense","הגנה"],["both","גם וגם"]],
   shooters:[["0","בלי יורה"],["1","יורה אחד"],["2","שני יורים"]],mount:[["fixed","לא, קבוע"],["turret","כן, על צריח"]],side:[["front","מקדימה"],["back","מאחור"],["side","מהצד"]],
-  range:[["36","עד 3 רגל"],["72","עד 6 רגל"],["108","עד 9 רגל"],["144","כל הזירה"]]};
+  range:[["36","עד 3 רגל"],["72","עד 6 רגל"],["108","עד 9 רגל"],["144","כל הזירה"]],
+  /* השאלה הכי חשובה בפיט: אילו כדורים הם יורים */
+  balls:[["pollen","רק פולן"],["both","גם פולן וגם נקטר"],["nectar","רק נקטר"]]};
 const PIT_MANY={intake:[["flower","מהפרח"],["floor","מהרצפה"],["human","מהשחקן האנושי"]],zones:[["near","קרוב לכוורת"],["mid","באמצע"],["far","רחוק"]],starts:[["A","A"],["B","B"],["C","C"]]};
 const PIT_BOOL=[["moving","אתם יורים תוך כדי נסיעה?"],["aim","הרובוט מכוון לבד, עם מצלמה?"],["aLeave","באוטונומי אתם יוצאים מהקיר?"],["aPark","אתם חונים בסוף האוטונומי?"],["tPark","אתם חונים בסוף המאץ׳?"],["late","אתם מכניסים נקטר בדקה האחרונה?"],["full","הרובוט בגודל המלא המותר?"],["lift","יש לכם מעלית פרחים?"]];
 const PIT_NUM={cap:4,aTips:6,aBalls:8,progs:5};
 /* שאלות שהסקאוטר קורא בקול לקבוצה בפיט שלה – בגוף שני, כמו בשיחה */
-const PIT_LBL={drive:"איזו הנעה יש לכם?",speed:"כמה הרובוט מהיר?",shooter:"מה מעיף את הכדור אצלכם?",role:"מה אתם הכי אוהבים לעשות במאץ׳?",shooters:"כמה יורים יש לרובוט?",mount:"היורה מסתובב לבד?",side:"מאיזה צד אתם אוספים?",
+const PIT_LBL={balls:"אתם יכולים לירות גם נקטר, או רק פולן?",drive:"איזו הנעה יש לכם?",speed:"כמה הרובוט מהיר?",shooter:"מה מעיף את הכדור אצלכם?",role:"מה אתם הכי אוהבים לעשות במאץ׳?",shooters:"כמה יורים יש לרובוט?",mount:"היורה מסתובב לבד?",side:"מאיזה צד אתם אוספים?",
   range:"מאיזה מרחק אתם עוד קולעים?",aBalls:"כמה כדורים אתם יורים באוטונומי?",intake:"מאיפה אתם אוספים כדורים?",zones:"מאיפה אתם הכי אוהבים לירות?",starts:"מאילו עמדות אתם מתחילים?",
   cap:"כמה כדורים הרובוט מחזיק בבת אחת?",aTips:"כמה היפוכים אתם עושים באוטונומי?",progs:"כמה תוכניות אוטונומי יש לכם?"};
 /* שמות קצרים לסיכום אצל המנהל (שם לא שואלים, רק מציגים) */
-const PIT_SHORT={drive:"הנעה",speed:"מהירות",shooter:"מעיף",role:"תפקיד מועדף",shooters:"יורים",mount:"צריח",side:"צד איסוף",range:"טווח קליעה",aBalls:"כדורים באוטונומי",
+const PIT_SHORT={balls:"כדורים לירי",drive:"הנעה",speed:"מהירות",shooter:"מעיף",role:"תפקיד מועדף",shooters:"יורים",mount:"צריח",side:"צד איסוף",range:"טווח קליעה",aBalls:"כדורים באוטונומי",
   intake:"אוסף",zones:"אזורי ירי",starts:"עמדות פתיחה",cap:"כדורים בבת אחת",aTips:"היפוכים באוטונומי",progs:"תוכניות אוטונומי",
   moving:"יורה בתנועה",aim:"מכוון לבד",aLeave:"יוצא מהקיר באוטונומי",aPark:"חונה בסוף האוטונומי",tPark:"חונה בסוף המאץ׳",late:"נקטר בדקה האחרונה",full:"בגודל המלא",lift:"מעלית פרחים"};
 /* מה שאפשר לראות ברובוט בלי לשאול */
 const PIT_SEE=new Set(["drive","shooters","mount","side","full","lift"]);
 const PIT_KEYS=[...Object.keys(PIT_ONE),...Object.keys(PIT_MANY),...PIT_BOOL.map(x=>x[0]),...Object.keys(PIT_NUM)];
 const PIT_REQ=["drive","shooters","intake"];
-const PIT_SHOOT=["mount","shooter","range","zones","moving","aim"]; /* לא רלוונטי לרובוט בלי יורה */ /* בלי אלה הרשומה "חלקית" */
+/* אילו כדורים – חובה, חוץ מרובוט בלי יורה */
+const pitReqFor=sh=>sh==="0"?PIT_REQ:[...PIT_REQ,"balls"];
+const PIT_SHOOT=["balls","mount","shooter","range","zones","moving","aim"]; /* לא רלוונטי לרובוט בלי יורה */ /* בלי אלה הרשומה "חלקית" */
 const pitId=t=>(curEv()?curEv()+"_":"")+"p"+t;
 const pitPendKey=()=>"bbz-pitpending:"+(S.me||"anon");
 S.myPit={};S.pitPending={};S.pitTeam=null;S.pitDirty=false;
@@ -4546,7 +4551,7 @@ function pitMerged(g){
 }
 function pitStatus(g){
   const done=(g||[]).filter(r=>!r.retry);
-  if(done.length){const m=pitMerged(g);const part=PIT_REQ.some(k=>!m.known.has(k));
+  if(done.length){const m=pitMerged(g);const part=pitReqFor(m.shooters).some(k=>!m.known.has(k));
     if(part)return ["part","חלקי","warn"];
     return done.length>=2?["dup","נסקר פעמיים","warn"]:["ok","נסקר","good"];}
   if((g||[]).some(r=>r.retry))return ["retry","לנסות שוב","bad"];
@@ -4558,7 +4563,7 @@ function pitSummaryHTML(p){
   const K=k=>p.known.has(k);
   const rows=[...Object.keys(PIT_ONE),...Object.keys(PIT_MANY)].filter(K).map(k=>[PIT_SHORT[k],pitTxt(k,p[k])]).concat(Object.keys(PIT_NUM).filter(K).map(k=>[PIT_SHORT[k],String(p[k])]));
   const yes=PIT_BOOL.filter(([k])=>K(k)).map(([k])=>`<span class="chip ${p[k]?"good":""}">${p[k]?"":"לא "}${PIT_SHORT[k]}</span>`).join(" ");
-  const miss=PIT_REQ.filter(k=>!K(k));
+  const miss=pitReqFor(p.shooters).filter(k=>!K(k));
   return `${miss.length?`<div class="chip warn" style="margin-bottom:8px">חסר: ${miss.map(k=>PIT_SHORT[k]).join(" · ")}</div>`:""}
     <div class="minis">${rows.map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v" style="font-size:15px">${esc(v)}</div></div>`).join("")}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${yes||'<span class="flat">אין סימונים</span>'}</div>
@@ -4572,7 +4577,7 @@ function pitOpen(team){
   pitArm=null;S.pitTeam=team;const mine=pitMine()[team];PF=mine?pitClean(mine):pitBlank();S.pitDirty=false;pitRetryArmed=false;
   renderPit();requestAnimationFrame(()=>$(isMgr()?"pitSummary":"pitForm")?.scrollIntoView({behavior:"smooth",block:"start"}));
 }
-const pitPartial=r=>!r.retry&&PIT_REQ.some(k=>!r.set.includes(k));
+const pitPartial=r=>!r.retry&&pitReqFor(r.shooters).some(k=>!r.set.includes(k));
 const pitOpenOf=(r)=>!r||r.retry||pitPartial(r);
 function pitNext(team){const st=pitMine();const L=(pitAssignMap()[S.me]||[]).filter(t=>t!==team);return L.find(t=>!st[t])||L.find(t=>st[t]&&st[t].retry)||L.find(t=>st[t]&&pitPartial(st[t]));}
 function pitSave(retry){
@@ -4628,7 +4633,8 @@ function pitFormHTML(){
     <div class="ph pit-head"><h2>קבוצה ${t}${teamName(t)?" · "+esc(teamName(t)):""}</h2><span class="hint">שיחה עם הקבוצה בפיט שלה. מה שלא שאלתם נשאר ריק</span><span class="right"><button type="button" class="btn" data-pclose="1">סגור</button></span></div>
     <div class="pit-say"><b>פותחים ככה:</b> ״היי! אנחנו מאפולו 9662. יש לכם שתי דקות לכמה שאלות על הרובוט?״<br><span class="flat">אם הם עסוקים – ״הקבוצה לא בפיט?״ למטה, וחוזרים אחר כך.</span></div>
     <div class="block"><h3>על הרובוט</h3><div class="row">${one("drive")}</div>${many("intake")}<div class="ctrs">${num("cap")}</div><div class="row">${one("role")}</div></div>
-    <div class="block"><h3>קליעה</h3><div class="row">${one("shooters")}${noShooter?"":one("mount")}</div>${noShooter?"":many("zones")}</div>
+    <div class="block"><h3>קליעה</h3><div class="row">${one("shooters")}</div>
+      ${noShooter?"":`<div class="pit-key"><span class="chip warn">⭐ הכי חשוב</span>${one("balls")}</div><div class="row">${one("mount")}</div>${many("zones")}`}</div>
     <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}<div class="ctrs">${tog("aLeave")}${num("aBalls")}${tog("aPark")}</div></div>
     <details class="block" id="pitMore" ${S.pitMore?"open":""}><summary><b>עוד שאלות</b> <span class="flat">(אם יש להם עוד זמן)</span></summary>
       <div class="row">${one("speed")}${one("side")}</div>
@@ -4706,7 +4712,7 @@ function declaredOf(team){
   const v=(k,f)=>K(k)?(f?f(p[k]):p[k]):null;
   return {confidence:DECLARED_CONFIDENCE,
     drive:v("drive"),speed:v("speed"),capacity:v("cap"),intake_from:v("intake"),intake_side:v("side"),
-    shooters:v("shooters",Number),shooter_mount:v("mount"),shooter_wheels:v("shooter"),max_range_in:v("range",Number),
+    shooters:v("shooters",Number),shoot_balls:v("balls"),shooter_mount:v("mount"),shooter_wheels:v("shooter"),max_range_in:v("range",Number),
     shoot_zones:v("zones"),shoots_moving:v("moving"),auto_aim:v("aim"),auto_starts:v("starts"),auto_leave:v("aLeave"),auto_park:v("aPark"),
     auto_balls:v("aBalls"),auto_tips:v("aTips"),auto_programs:v("progs"),end_park:v("tPark"),late_nectar:v("late"),flower_lift:v("lift"),
     preferred_role:v("role"),full_size:v("full")};

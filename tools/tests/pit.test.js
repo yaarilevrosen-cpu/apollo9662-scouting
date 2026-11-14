@@ -27,7 +27,11 @@ async function page(browser,seed,vp){
   await s.click('#v-pit [data-popen="90001"]');await s.waitForTimeout(200);
   ok(await s.isVisible('#pitForm'),'scout: form opens');
   await s.click('[data-p1="drive"][data-v="mecanum"]');
+  await s.click('[data-p1="shooters"][data-v="0"]');
+  ok(!(await s.$('[data-p1="balls"]')),'scout: no pollen/nectar question for a robot without a shooter');
   await s.click('[data-p1="shooters"][data-v="1"]');
+  ok(await s.isVisible('.pit-key [data-p1="balls"][data-v="both"]'),'scout: pollen/nectar question shown, marked most important');
+  await s.click('[data-p1="balls"][data-v="both"]');
   await s.click('#pitMore summary');await s.click('[data-p1="speed"][data-v="fast"]');
   await s.click('[data-pm="intake"][data-v="flower"]');await s.click('[data-pm="intake"][data-v="human"]');
   await s.click('[data-pn="cap"] [data-pd="1"]');await s.click('[data-pn="cap"] [data-pd="1"]');
@@ -39,6 +43,7 @@ async function page(browser,seed,vp){
   await s.click('[data-psave]');await s.waitForTimeout(300);
   const st=await s.evaluate(()=>window.__STORE["entries/s1"]);
   const rec=st.pit&&st.pit.p90001;
+  ok(rec&&rec.balls==="both"&&rec.set.includes('balls'),'scout: pollen/nectar answer saved');
   ok(rec&&rec.drive==="mecanum"&&rec.speed==="fast"&&rec.cap===2&&rec.zones.join()==="mid"&&rec.intake.join()==="flower,human"&&rec.moving===true&&rec.lift===false&&rec.set.includes('lift')&&!rec.set.includes('aim')&&rec.notes==="גאים באוטונומי"&&rec.starts.join()==="A",'scout: record saved to own doc '+JSON.stringify(rec));
   ok(Object.keys(st.rows).length===0,'scout: match rows untouched');
   ok(await s.isVisible('#pitForm')&&(await s.textContent('#pitForm h2')).includes('90002'),'scout: next assigned team opened automatically');
