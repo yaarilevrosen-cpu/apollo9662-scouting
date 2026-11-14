@@ -203,6 +203,12 @@ const GATE_CSS=`#cloudGate{--g-bg:var(--bg,#EDF1EE);--g-card:var(--surface,#fff)
   #cloudGate .cg-msg{margin:0;min-height:1.3em;font-weight:600;color:var(--g-bad)}
   #cloudGate .cg-msg.ok{color:var(--g-good)}
   #cloudGate .cg-foot{margin:0;color:var(--g-muted);font-size:12.5px;text-align:center}
+  #cloudGate .cg-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #cloudGate .cg-ml{grid-column:1/-1;font-weight:700;font-size:15px}
+  #cloudGate .cg-mode{display:grid;gap:2px;min-height:64px;padding:10px;border:2px solid var(--g-line);border-radius:14px;background:var(--g-card);color:var(--g-ink);font:inherit;cursor:pointer;text-align:center}
+  #cloudGate .cg-mode b{font-size:17px}#cloudGate .cg-mode span{font-size:13px;color:var(--g-muted)}
+  #cloudGate .cg-mode[aria-pressed="true"]{border-color:var(--g-honey);background:var(--g-soft)}
+  #cloudGate .cg-mode:focus-visible{outline:3px solid var(--g-honey);outline-offset:2px}
   #cloudGate [hidden]{display:none!important}`;
 const HEX=`<svg class="cg-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3l18 10.5v21L24 45 6 34.5v-21z" fill="var(--g-honey)"/><path d="M24 13l9 5.2v10.5L24 34l-9-5.3V18.2z" fill="var(--g-card)" opacity=".92"/><path d="M24 19.5l3.7 2.2v4.5L24 28.4l-3.7-2.2v-4.5z" fill="var(--g-honey)"/></svg>`;
 const pwField=(id,ac)=>`<div class="cg-pw"><input id="${id}" type="password" required dir="ltr" autocomplete="${ac}" minlength="${ac==="new-password"?8:1}"><button type="button" class="cg-eye" data-eye="${id}" aria-label="הצגת הסיסמה">הצג</button></div>`;
@@ -217,6 +223,9 @@ async function gate(mode){
         <button type="button" role="tab" id="cgTabScout" aria-selected="true" aria-controls="cgJoin">סקאוטר</button>
         <button type="button" role="tab" id="cgTabMgr" aria-selected="false" aria-controls="cgMgr">מנהל</button></div>
       <form id="cgJoin" role="tabpanel" aria-labelledby="cgTabScout">
+        <div class="cg-modes" role="group" aria-labelledby="cgModeL"><span id="cgModeL" class="cg-ml">מה עושים היום?</span>
+          <button type="button" class="cg-mode" data-gmode="match" aria-pressed="false"><b>מאצ׳ים</b><span>צופים ומזינים</span></button>
+          <button type="button" class="cg-mode" data-gmode="pit" aria-pressed="false"><b>פיט</b><span>שואלים את הקבוצות</span></button></div>
         <label>השם שלך<input id="cgName" maxlength="40" autocomplete="nickname" required></label>
         <label>קוד ההצטרפות <span class="cg-hint">מהמנהל. לא משנה אם באותיות גדולות או קטנות</span>
           <input id="cgCode" class="cg-code" maxlength="32" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" dir="ltr" required></label>
@@ -251,6 +260,10 @@ async function gate(mode){
     /* כפתור בזמן עבודה: לא לוחצים פעמיים, ורואים שמשהו קורה */
     const busy=async(form,label,fn)=>{const b=form.querySelector(".cg-go");const t=b.textContent;b.disabled=true;b.textContent=label;
       try{await fn();}finally{b.disabled=false;b.textContent=t;}};
+    /* מאצ׳ים או פיט: נשמר בטלפון, והאפליקציה פותחת ישר את הלשוניות של המצב */
+    let gmode=null;try{const v=JSON.parse(localStorage.getItem("bbz-mode")||"null");if(v==="match"||v==="pit")gmode=v;}catch(e){}
+    const markMode=()=>box.querySelectorAll("[data-gmode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.gmode===gmode)));markMode();
+    box.querySelectorAll("[data-gmode]").forEach(b=>b.addEventListener("click",()=>{gmode=b.dataset.gmode;markMode();msg("");}));
     $g("cgTabScout").addEventListener("click",()=>show("cgJoin"));
     $g("cgTabMgr").addEventListener("click",()=>show("cgMgr"));
     $g("cgForgot").addEventListener("click",()=>{show("cgReset");$g("cgRMail").value=$g("cgMail").value;});
@@ -261,7 +274,10 @@ async function gate(mode){
       const toMgr=$g("cgTabScout")===document.activeElement;(toMgr?$g("cgTabMgr"):$g("cgTabScout")).focus();show(toMgr?"cgMgr":"cgJoin");});
     box.addEventListener("click",ev=>{const e=ev.target.closest("[data-eye]");if(!e)return;const i=$g(e.dataset.eye);const vis=i.type==="password";
       i.type=vis?"text":"password";e.textContent=vis?"הסתר":"הצג";e.setAttribute("aria-label",vis?"הסתרת הסיסמה":"הצגת הסיסמה");});
-    $g("cgJoin").addEventListener("submit",ev=>{ev.preventDefault();msg("");busy($g("cgJoin"),"נכנס…",async()=>{
+    $g("cgJoin").addEventListener("submit",ev=>{ev.preventDefault();msg("");
+      if(!gmode){msg("לבחור קודם: מאצ׳ים או פיט");box.querySelector("[data-gmode]").focus();return;}
+      try{localStorage.setItem("bbz-mode",JSON.stringify(gmode));}catch(e){}
+      busy($g("cgJoin"),"נכנס…",async()=>{
       try{
         let {data:{session}}=await sb().auth.getSession();
         if(!session){const r=await sb().auth.signInAnonymously();if(r.error)throw r.error;}

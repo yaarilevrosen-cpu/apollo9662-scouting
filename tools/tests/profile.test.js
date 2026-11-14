@@ -16,6 +16,7 @@ async function page(browser,seed,vp){
   const control={cur:1,sched,ev:"",event:"דוגמה"};
   const seedS={me:"s1",owner:false,docs:{"control/main":control,"entries/s1":{rows:{},ts:1,profile:{nick:"נועה",color:1,motto:"",joined:Date.now()}}}};
   const s=await page(browser,seedS);
+  await s.click('[data-mode="match"]');await s.waitForTimeout(150);
   await s.click('#tab-entry');await s.fill('#fMatch','1');await s.fill('#fTeam','90001');
   await s.click('.fseg[data-fk="aStart"] [data-v="B"]');
   for(let i=0;i<3;i++)await s.click('.ctr[data-k="shotsHit"] .plus');

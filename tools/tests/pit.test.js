@@ -18,7 +18,9 @@ async function page(browser,seed,vp){
   // ── scout ──
   const seedS={me:"s1",owner:false,docs:{"control/main":control,"entries/s1":{rows:{},ts:1,profile:{nick:"נועה",color:1,motto:"",joined:Date.now()}}}};
   const s=await page(browser,seedS);
-  await s.click('#tab-pit');await s.waitForTimeout(200);
+  ok(await s.isVisible('[data-mode="pit"]')&&!(await s.$('#tab-entry')),'scout: chooses match or pit first');
+  await s.click('[data-mode="pit"]');await s.waitForTimeout(200);
+  ok(!(await s.$('#tab-entry'))&&!(await s.$('#tab-mission')),'scout pit mode: only pit tabs');await s.waitForTimeout(200);
   ok(await s.isVisible('#v-pit'),'scout: pit tab visible');
   ok((await s.locator('#v-pit [data-popen]').count())===3,'scout: three assigned teams listed');
   await s.screenshot({path:out+'/scout-list.png',fullPage:true});
@@ -93,6 +95,8 @@ async function page(browser,seed,vp){
   ok(d.errs.length===0,'demo: no JS errors '+d.errs.join('|'));
   // ── regression: match entry still saves ──
   const r=await page(browser,seedS);
+  await r.click('[data-mode="match"]');await r.waitForTimeout(150);
+  ok(!(await r.$('#tab-pit')),'scout match mode: no pit tab');
   await r.click('#tab-entry');await r.fill('#fMatch','1');await r.fill('#fTeam','90001');await r.click('#formSave');await r.waitForTimeout(300);
   const rr=await r.evaluate(()=>window.__STORE["entries/s1"].rows);
   ok(rr&&rr["m1-t90001"],'regression: match entry still saved');

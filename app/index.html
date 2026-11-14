@@ -92,6 +92,12 @@ section.view{padding-top:12px;display:grid;gap:18px}
 .grid{display:grid;gap:18px;grid-template-columns:repeat(12,minmax(0,1fr))}
 .c12{grid-column:span 12}.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}
 @media (max-width:960px){.c8,.c7,.c6,.c5,.c4{grid-column:span 12}}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.mode-card{display:grid;gap:8px;text-align:start;background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:20px;min-height:150px;cursor:pointer;color:var(--ink);font:inherit;box-shadow:var(--shadow)}
+.mode-card:hover{border-color:var(--honey)}.mode-card:focus-visible{outline:3px solid var(--honey);outline-offset:2px}
+.mode-card[aria-pressed="true"]{border-color:var(--honey);background:var(--honey-soft)}
+.mode-card .mi{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--honey);color:var(--on-honey);font-size:24px}
+.mode-card b{font:400 22px/1.2 var(--f-display)}.mode-card span{color:var(--muted);font-size:15px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0;box-shadow:var(--shadow)}
 .panel h2{font-size:19px}
 .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -528,6 +534,7 @@ svg .he{font-family:var(--f-body)}
   <section class="view" id="v-profile" role="tabpanel" aria-labelledby="tab-profile" hidden></section>
   <section class="view" id="v-crew" role="tabpanel" aria-labelledby="tab-crew" hidden></section>
   <section class="view" id="v-pit" role="tabpanel" aria-labelledby="tab-pit" hidden></section>
+  <section class="view" id="v-mode" role="tabpanel" aria-labelledby="tab-mode" hidden></section>
 
   <section class="view" id="v-team" role="tabpanel" aria-labelledby="tab-team" hidden>
     <div class="panel">
@@ -3267,13 +3274,28 @@ const VIEW_INFO={
   mission:["המאץ׳ שלי","על איזה רובוט אתה מסתכל עכשיו, ומה מחכה לך בהמשך."],
   mine:["ההיסטוריה שלי","כל מה ששמרת בתחרות הזאת. לחיצה על שורה פותחת אותה לעריכה."],
   pit:["סקאוטינג פיט","שואלים כל קבוצה בפיט על הרובוט שלה: הנעה, איסוף, ירי, אוטונומי וסוף המאץ׳. כל קבוצה משובצת לסקאוטר אחד."],
+  mode:["מה עושים היום?","בוחרים פעם אחת, ואפשר להחליף בכל רגע בלשונית ״החלפה״. הרשומות נשמרות בשני המצבים."],
   profile:["הפרופיל שלי","הרמה שלך, התגים שאספת וטבלת הסקאוטרים של הצוות."]
 };
 function tabsFor(){
   if(isMgr())return [["board","סקירה כללית","סקירה"],["team","פרופיל קבוצה","קבוצה"],["quals","משחקי הדירוג","דירוג"],["play","בחירת ברית וגמר","גמר"],["crew","הסקאוטרים","צוות"],["pit","סקאוטינג פיט","פיט"],["entry","הזנת נתונים","הזנה"],["admin","הגדרות התחרות","הגדרות"]];
   if(S.role&&(S.loaded||!db)&&!myProfile())return [["join","הרשמה","הרשמה"]];
-  return [["mission","המאץ׳ שלי","המאץ׳"],["pit","סקאוטינג פיט","פיט"],["entry","הזנת נתונים","הזנה"],["mine","ההיסטוריה שלי","היסטוריה"],["profile","הפרופיל שלי","פרופיל"]];
+  /* סקאוטר: מאצ׳ים או פיט, כל אחד עם הלשוניות שלו בלבד. באתר המצב נבחר במסך הכניסה */
+  if(!S.mode){const m=LS.get("bbz-mode",null);if(m==="match"||m==="pit")S.mode=m;}
+  if(S.mode==="pit")return [["pit","סקאוטינג פיט","פיט"],["profile","הפרופיל שלי","פרופיל"],["mode","החלפה למאצ׳ים","החלפה"]];
+  if(S.mode==="match")return [["mission","המאץ׳ שלי","המאץ׳"],["entry","הזנת נתונים","הזנה"],["mine","ההיסטוריה שלי","היסטוריה"],["profile","הפרופיל שלי","פרופיל"],["mode","החלפה לפיט","החלפה"]];
+  return [["mode","מה עושים היום?","בחירה"]];
 }
+const MODES={match:["⚡","סקאוטינג מאצ׳ים","צופים במאצ׳ים ומזינים מה כל רובוט עשה: נקודות, ירי, הגנה וסוף המאץ׳."],
+  pit:["🔧","סקאוטינג פיט","עוברים בפיט ושואלים את הקבוצות על הרובוט: הנעה, איסוף, ירי ואוטונומי."]};
+function setMode(m){S.mode=m;LS.set("bbz-mode",m);go(m==="pit"?"pit":"mission");toast(m==="pit"?"מצב פיט":"מצב מאצ׳ים");}
+function renderMode(){
+  const pend=Object.keys(S.pending).length,pitPend=Object.keys(S.pitPending).length;
+  $("v-mode").innerHTML=`<div class="modes">${Object.entries(MODES).map(([k,[ic,t,d]])=>`<button type="button" class="mode-card" data-mode="${k}" aria-pressed="${S.mode===k}">
+    <span class="mi" aria-hidden="true">${ic}</span><b>${t}</b><span>${d}</span>${S.mode===k?'<span>המצב הנוכחי</span>':""}</button>`).join("")}</div>
+    ${pend||pitPend?`<div class="flat" style="margin-top:12px">${pend?pend+" רשומות מאצ׳ים":""}${pend&&pitPend?" ו־":""}${pitPend?pitPend+" רשומות פיט":""} עוד ממתינות לשליחה. הן יישלחו גם אם מחליפים מצב.</div>`:""}`;
+}
+document.addEventListener("click",ev=>{const b=ev.target.closest("[data-mode]");if(b&&MODES[b.dataset.mode])setMode(b.dataset.mode);});
 let lastTabsHtml="";
 function renderTabs(){
   const T=tabsFor();
@@ -3285,9 +3307,9 @@ function renderTabs(){
     const sel=$("tabs").querySelector('[aria-selected="true"]');sel?.scrollIntoView({inline:"nearest",block:"nearest"});if(hadFocus)sel?.focus();}
   const waiting=!isMgr()&&db&&!S.loaded&&!myProfile();
   $("v-loading").hidden=!waiting;
-  for(const v of ["mission","board","entry","mine","team","quals","play","admin","join","profile","crew","pit"])$("v-"+v).hidden=waiting||v!==S.tab;
+  for(const v of ["mission","board","entry","mine","team","quals","play","admin","join","profile","crew","pit","mode"])$("v-"+v).hidden=waiting||v!==S.tab;
   const vi=VIEW_INFO[S.tab];$("viewHead").hidden=waiting||!vi;if(vi){$("vhT").textContent=vi[0];$("vhD").textContent=vi[1];}
-  $("roleTag").textContent=isMgr()?"מנהל":"סקאוטר";$("roleTag").className="role"+(isMgr()?"":" scout");
+  $("roleTag").textContent=isMgr()?"מנהל":S.mode==="pit"?"סקאוטר · פיט":S.mode==="match"?"סקאוטר · מאצ׳ים":"סקאוטר";$("roleTag").className="role"+(isMgr()?"":" scout");
   $("eventName").textContent=S.control.event||"חדר הנתונים של התחרות";
   renderNow();
   setHdr();
@@ -3573,6 +3595,7 @@ function restoreDraft(){
   F={...BLANK,...d.F,tipT:[...(d.F?.tipT||[])]};if(d.F&&d.F.defT==null)F.defT=d.F.defended?2:0;if(d.F&&d.F.sv==null)F.sv=false;$("fMatch").value=d.match||"";$("fTeam").value=d.team||"";$("fNotes").value=d.notes||"";
   S.editId=d.editId||null;editBy=d.editBy||null;S.dirty=true;
   if(d.t0&&Date.now()-d.t0<175000)startClock(d.t0);
+  if(!isMgr()&&S.mode!=="match"){S.mode="match";LS.set("bbz-mode","match");}
   S.tab="entry";toast("שוחזר טופס שלא נשמר");
 }
 function markDirty(){S.dirty=true;S.delAsk=false;resetArmed=false;saveArmed=false;}
@@ -4151,7 +4174,9 @@ function publishBoard(){
 }
 
 /* ── ניווט ורינדור ── */
-function go(tab){if(tab!==S.tab){$("toast").hidden=true;}if(tab!=="join"&&S.tab==="join"){$("v-join").innerHTML="";joinColor=null;}S.tab=tab;LS.set("bbz-tab",tab);render();window.scrollTo({top:0});}
+function go(tab){if(tab!==S.tab){$("toast").hidden=true;}
+  /* סקאוטר שנשלח ללשונית של המצב השני (למשל טיוטה של מאץ׳) – עובר מצב, כדי שהלשונית תופיע */
+  if(!isMgr()&&S.role){const want=["mission","entry","mine"].includes(tab)?"match":tab==="pit"?"pit":null;if(want&&S.mode!==want){S.mode=want;LS.set("bbz-mode",want);}}if(tab!=="join"&&S.tab==="join"){$("v-join").innerHTML="";joinColor=null;}S.tab=tab;LS.set("bbz-tab",tab);render();window.scrollTo({top:0});}
 let lastTeamList="";
 function render(){
   if(!S.role)return;
@@ -4171,6 +4196,7 @@ function render(){
   else if(S.tab==="join"){if(!["jNick","jMotto"].includes(ae))renderJoin();}
   else if(S.tab==="profile"){renderProfile();if(CLOUD()&&!$("profSignOut")){const d=document.createElement("div");d.className="panel";d.id="profSignOut";d.innerHTML=`<div class="ph"><h2>החשבון בטלפון הזה</h2><span class="hint">טלפון משותף? מתנתקים בסוף, כדי שהסקאוטר הבא ייכנס עם השם שלו</span></div><button class="btn" data-signout="1">התנתק</button>`;$("v-profile").appendChild(d);}}
   else if(S.tab==="crew")renderCrew();
+  else if(S.tab==="mode")renderMode();
   else if(S.tab==="pit"){if(!["pitNotes","pit-other"].includes(ae)&&document.activeElement?.tagName!=="SELECT")renderPit();}
   else if(S.tab==="team"){if(ae!=="tName")renderTeam();}
   else if(S.tab==="quals"){renderQuals();renderAlly();}
@@ -4861,6 +4887,8 @@ function qrShow(i){
 }
 
 S.tab=LS.get("bbz-tab",null);
+/* מצב הסקאוטר בטלפון הזה: "match" או "pit". באתר נבחר כבר במסך הכניסה */
+S.mode=LS.get("bbz-mode",null);if(!["match","pit"].includes(S.mode))S.mode=null;
 (async function boot(){
   try{
     if(!window.claude||!window.claude.use){S.role="scout";render();return;}

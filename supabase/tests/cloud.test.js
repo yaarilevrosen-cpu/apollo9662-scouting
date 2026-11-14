@@ -39,9 +39,11 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   /* ── סקאוטר מצטרף ── */
   const s=await open();
   ok(await until(()=>s.isVisible("#cloudGate"),8000),"scout: join screen shown");
-  await s.fill("#cgName","נועה");await s.fill("#cgCode","wrong");await s.click("#cgJoin button");
+  await s.fill("#cgName","נועה");await s.fill("#cgCode","wrong");await s.click("#cgJoin .cg-go");
+  ok(await until(async()=>(await s.textContent("#cgMsg")).includes("מאצ׳ים או פיט"),4000),"scout: must choose match or pit");
+  await s.click('[data-gmode="match"]');await s.click("#cgJoin .cg-go");
   ok(await until(async()=>(await s.textContent("#cgMsg")).includes("לא נכון"),5000),"scout: wrong code refused");
-  await s.fill("#cgCode","team9662xyz");await s.click("#cgJoin button");
+  await s.fill("#cgCode","team9662xyz");await s.click("#cgJoin .cg-go");
   ok(await until(async()=>!(await s.isVisible("#cloudGate")),8000),"scout: joined with code");
   const sid=(await q.query("select uid from members where role='scout'")).rows[0]?.uid;
   ok(!!sid,"scout: member row created");
