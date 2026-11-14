@@ -83,6 +83,8 @@ alter table public.settings     enable row level security;
 alter table public.docs         enable row level security;
 alter table public.sim_profiles enable row level security;
 alter table public.sim_meta     enable row level security;
+-- ניסיונות הצטרפות: בלי מדיניות = חסום לכולם. רק join_team (בהרשאות הבעלים) נוגעת בה
+alter table public.join_attempts enable row level security;
 
 -- חברים: כל אחד רואה את עצמו; מנהל רואה את כולם. שינוי תפקידים – רק מנהל.
 drop policy if exists members_read on public.members;

@@ -297,6 +297,20 @@ async function removeScout(uid){await ready;
   const r1=await sb().from("docs").delete().eq("path","entries/"+uid);if(r1.error)throw fail(r1.error);
   const r2=await sb().from("members").delete().eq("uid",uid);if(r2.error)throw fail(r2.error);refreshAll();}
 
-window.__CLOUD={status:()=>({...state}),onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,signOut,listScouts,removeScout,pendingCount,ready,_refreshAll:refreshAll};
+/* קוד חיבור לסימולטור: בודקים שהמייל והסיסמה באמת של חשבון קריאה, בחיבור זמני נפרד
+   (לא נוגע בכניסה של המנהל ולא נשמר בדפדפן), ומחזירים את מה שנכנס לקוד */
+async function simConnInfo(email,pw){
+  if(!CFG.url||!CFG.anonKey||!window.supabase)throw fail("not_configured");
+  const tmp=window.supabase.createClient(CFG.url,CFG.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"a9662-probe"}});
+  const {error}=await tmp.auth.signInWithPassword({email,password:pw});
+  if(error)throw Object.assign(new Error("bad_login"),{code:"bad_login"});
+  try{
+    const {data:role,error:e2}=await tmp.rpc("my_role");
+    if(e2)throw fail(e2);
+    if(role!=="reader")throw Object.assign(new Error("not_reader"),{code:"not_reader",role});
+  }finally{try{await tmp.auth.signOut({scope:"local"});}catch(_){}}
+  return {url:CFG.url,key:CFG.anonKey};
+}
+window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,signOut,listScouts,removeScout,pendingCount,ready,_refreshAll:refreshAll};
 window.claude={use:async k=>k==="db"?db:k==="user"?user:k==="downloads"?downloads:null};
 })();

@@ -4765,7 +4765,8 @@ async function loadScouts(){try{scoutsCache=await CLOUD().listScouts();}catch(e)
 function renderSimSync(){
   const el=$("simSync");if(!el)return;
   /* הקוד שבשדה (גם קוד אקראי שעוד לא נשמר) לא נמחק כשהמסך מתעדכן */
-  const jc=$("joinCode")?.value||"";if(jc)setTimeout(()=>{const x=$("joinCode");if(x&&!x.value)x.value=jc;},0);
+  const keepVals=["joinCode","simConnMail"].map(k=>[k,$(k)?.value||""]).filter(x=>x[1]);
+  if(keepVals.length)setTimeout(()=>{for(const [k,v] of keepVals){const x=$(k);if(x&&!x.value)x.value=v;}},0);
   if(!CLOUD()){el.innerHTML=`<div class="flat" style="font-size:13px">כאן (בארטיפקט) אין סנכרון חי. בגרסת האתר הפרופילים מתפרסמים לסימולטור לבד.</div>`;return;}
   const st=CLOUD().status();
   const line=pubState.err?`<span class="chip bad">${esc(pubState.err)}</span>`:pubState.at?`<span class="chip good">פורסם ${ago(pubState.at)} · ${pubState.changed} קבוצות השתנו</span>`:`<span class="chip">ממתין לשינוי ראשון</span>`;
@@ -4777,10 +4778,15 @@ function renderSimSync(){
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-signout="1">התנתק</button></div></div>
     <div style="margin-top:12px"><div class="lbl">סקאוטרים שהצטרפו ${scoutsCache?"("+scoutsCache.length+")":""}</div>
     ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span><span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><button class="btn" data-rmscout="${esc(m.uid)}" style="margin-inline-start:auto">${rmArm===m.uid?"לחץ שוב להסרה":"הסר"}</button></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">הצג</button>`}
-    <div class="flat" style="font-size:12px;margin-top:6px">הסרה מוחקת גם את הרשומות שלו, והן כבר לא נספרות בסטטיסטיקה ובסימולטור.</div></div>`;
+    <div class="flat" style="font-size:12px;margin-top:6px">הסרה מוחקת גם את הרשומות שלו, והן כבר לא נספרות בסטטיסטיקה ובסימולטור.</div></div>
+    <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור</div>
+    <div class="flat" style="font-size:12px;margin-top:4px">קוד אחד עם כל פרטי החיבור החי, כולל הסיסמה של חשבון הקריאה. הסימולטור סורק או מדביק אותו. לא נשמר כאן.</div>
+    <div class="row" style="margin-top:6px"><div class="field"><label for="simConnMail">מייל חשבון הקריאה</label><input class="inp" id="simConnMail" type="email" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" autocapitalize="none" spellcheck="false" dir="ltr" style="width:200px"></div>
+    <div class="field"><label for="simConnPw">סיסמה</label><input class="inp" id="simConnPw" type="password" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-form-type="other" dir="ltr" style="width:160px"></div>
+    <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-simconn="1">צור קוד חיבור</button></div></div></div>`;
 }
 document.addEventListener("click",async ev=>{
-  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-gencode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout]");if(!t)return;
+  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-gencode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout],[data-simconn],[data-conncopy]");if(!t)return;
   if(t.dataset.pubnow){pubKey="";clearTimeout(pubT);publishNow();}
   /* 10 תווים, אותיות גדולות ומספרים בלי תווים שמתבלבלים (O/0, I/1). הכניסה לא רגישה לאותיות */
   else if(t.dataset.gencode){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";const r=new Uint32Array(10);crypto.getRandomValues(r);
@@ -4796,7 +4802,34 @@ document.addEventListener("click",async ev=>{
   else if(t.dataset.qr){qrOpen();}
   else if(t.dataset.qrnav){qrShow(QR.i+ +t.dataset.qrnav);}
   else if(t.dataset.qrclose){$("qrBox")?.remove();}
+  else if(t.dataset.simconn){simConnOpen(t);}
+  else if(t.dataset.conncopy){const v=$("connTxt")?.value||"";try{await navigator.clipboard.writeText(v);toast("הועתק");}catch(e){$("connTxt")?.select();toast("לסמן ולהעתיק ידנית");}}
 });
+
+/* ── קוד חיבור לסימולטור: A9662C:1:<נתונים>, כמו קוד ה־QR של המאץ׳ (JSON דחוס ובבסיס 64 לכתובות).
+   בתוכו: כתובת, מפתח ציבורי, מייל וסיסמה של חשבון הקריאה, וקוד התחרות. בודקים שהחשבון באמת "קריאה בלבד" לפני שמציגים ── */
+let connBusy=false,connCloseT=null;
+async function simConnOpen(btn){
+  if(!isMgr()||!CLOUD()?.simConnInfo||connBusy)return;
+  const email=($("simConnMail")?.value||"").trim(),pw=$("simConnPw")?.value||"";
+  if(!email||!pw){toast("צריך מייל וסיסמה של חשבון הקריאה");return;}
+  if(typeof qrcode!=="function"||!window.CompressionStream){toast("הדפדפן הזה לא יודע ליצור קוד");return;}
+  connBusy=true;btn.disabled=true;
+  try{
+    const c=await CLOUD().simConnInfo(email,pw);
+    const code="A9662C:1:"+await packQR({url:c.url,key:c.key,email,pw,event:curEv()});
+    const q=qrcode(0,"L");q.addData(code,"Byte");q.make();
+    let box=$("qrBox");if(!box){box=document.createElement("div");box.id="qrBox";document.body.appendChild(box);}
+    box.innerHTML=`<div class="qr-card" role="dialog" aria-label="קוד חיבור לסימולטור"><h3>קוד חיבור לסימולטור</h3>
+      <div class="qr-img">${q.createSvgTag({cellSize:6,margin:4,scalable:true})}</div>
+      <div class="chip bad" style="white-space:normal">יש בקוד סיסמה. עדיף לסרוק במצלמה של מחשב הסימולטור. לא לשלוח בקבוצה, לא לצלם, לא לשמור ולא להציג על מקרן או בשיתוף מסך. הקוד דלף? מחליפים את הסיסמה של חשבון הסימולטור בסופאבייס – וכל הקודים הישנים מפסיקים לעבוד. החלון נסגר לבד אחרי שתי דקות.</div>
+      <textarea id="connTxt" class="inp" dir="ltr" rows="3" readonly style="width:100%;font-size:11px">${esc(code)}</textarea>
+      <div style="display:flex;gap:8px;justify-content:center"><button class="btn" data-conncopy="1">העתק (אם אין מצלמה)</button><button class="btn" data-qrclose="1">סגור</button></div></div>`;
+    clearTimeout(connCloseT);connCloseT=setTimeout(()=>{if($("connTxt"))$("qrBox")?.remove();},120000);
+  }catch(e){
+    toast(e?.code==="bad_login"?"המייל או הסיסמה לא נכונים":e?.code==="not_reader"?"זה לא חשבון קריאה. צריך את החשבון של הסימולטור, לא חשבון מנהל":"יצירת הקוד נכשלה. לבדוק רשת");
+  }finally{connBusy=false;btn.disabled=false;if($("simConnPw"))$("simConnPw").value="";}
+}
 
 /* ── קוד QR: חבילת המאץ׳ דחוסה, מחולקת לכמה קודים. מבנה כל קוד: A9662:<מס׳>/<סה״כ>:<מזהה>:<נתונים> ── */
 const QR={parts:[],i:0,id:""};
@@ -4813,7 +4846,7 @@ async function qrOpen(){
   if(!m){toast("מספר מאץ׳ לא תקין");return;}
   const pk=matchPackage(m);if(!pk){toast("אין ארבע קבוצות בלוח הזמנים למאץ׳ "+m);return;}
   if(typeof qrcode!=="function"||!window.CompressionStream){toast("הדפדפן הזה לא יודע ליצור קוד");return;}
-  const data=await packQR(pk);const SZ=700;const n=Math.ceil(data.length/SZ);
+  const data=await packQR(pk);const SZ=380; /* קוד קטן יותר נסרק טוב יותר במצלמת מחשב */const n=Math.ceil(data.length/SZ);
   QR.id=Math.random().toString(36).slice(2,6);QR.parts=[];for(let i=0;i<n;i++)QR.parts.push(`A9662:${i+1}/${n}:${QR.id}:`+data.slice(i*SZ,(i+1)*SZ));
   QR.m=m;qrShow(0);
 }

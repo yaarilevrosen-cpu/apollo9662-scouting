@@ -14,6 +14,9 @@
    שימוש:
      const r = ScoutingReader.create({ url, anonKey, email, password, eventCode: "", onUpdate, onStatus });
      r.importFile(text); await r.addQR(decodedString); r.stop();
+   קוד חיבור מהמנהל (במקום להקליד חמישה שדות):
+     const cfg = await ScoutingReader.parseConnCode(scannedOrPasted);  // null לקוד פגום
+     const r = ScoutingReader.create(Object.assign({ onUpdate, onStatus }, cfg));
    הסיסמה והמפתח – בקובץ הגדרות מקומי שלא נכנס למאגר. */
 (function(root){
 "use strict";
@@ -99,17 +102,36 @@ function create(opt){
       if(g.parts.size<n)return n-g.parts.size;
       let b64="";for(let k=1;k<=n;k++)b64+=g.parts.get(k);
       qrParts.delete(id);
-      const bin=atob(b64.replace(/-/g,"+").replace(/_/g,"/"));const bytes=new Uint8Array(bin.length);for(let k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
-      const ds=new DecompressionStream("deflate-raw");const w=ds.writable.getWriter();
-      const done=Promise.all([w.write(bytes),w.close()]).catch(()=>{});
-      const text=new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());await done;
-      return emit("qr",JSON.parse(text))?0:-1;
+      return emit("qr",JSON.parse(await unpack(b64)))?0:-1;
     }catch(e){return -1;}
   }
   function stop(){stopped=true;clearInterval(pollT);clearInterval(safeT);try{chan&&client.removeChannel(chan);}catch(e){}}
   start();
   return {importFile,addQR,stop,current:()=>last,status:()=>mode,stale:isStale};
 }
-const api={create};
+/* בסיס 64 לכתובות → deflate-raw → טקסט. אותו קידוד כמו בקודי ה־QR של האפליקציה */
+async function unpack(b64){
+  const bin=atob(b64.replace(/-/g,"+").replace(/_/g,"/"));const bytes=new Uint8Array(bin.length);for(let k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
+  const ds=new DecompressionStream("deflate-raw");const w=ds.writable.getWriter();
+  const done=Promise.all([w.write(bytes),w.close()]).catch(()=>{});
+  const text=new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());await done;
+  return text;
+}
+/* קוד חיבור מהמנהל: "A9662C:1:<נתונים>". מחזיר { url, anonKey, email, password, eventCode } – בדיוק מה ש־create מקבל –
+   או null לקוד פגום. יש בו סיסמה: לשמור רק בקובץ ההגדרות המקומי, לא במאגר ולא ביומן */
+async function parseConnCode(str){
+  try{
+    const s=String(str||"").trim();if(s.length>4000)return null;
+    const m=/^A9662C:1:([A-Za-z0-9_-]+)$/.exec(s);if(!m)return null;
+    const c=JSON.parse(await unpack(m[1]));
+    if(!c||typeof c.url!=="string"||typeof c.key!=="string"||typeof c.email!=="string"||typeof c.pw!=="string")return null;
+    /* הסיסמה נשלחת לכתובת הזאת: רק https, או שרת מקומי לבדיקות. בלי שם משתמש בכתובת (http://localhost@evil) */
+    let u;try{u=new URL(c.url);}catch(e){return null;}
+    const local=u.hostname==="localhost"||u.hostname==="127.0.0.1";
+    if(u.username||u.password||!(u.protocol==="https:"||(u.protocol==="http:"&&local)))return null;
+    return {url:u.origin,anonKey:c.key,email:c.email,password:c.pw,eventCode:typeof c.event==="string"?c.event:""};
+  }catch(e){return null;}
+}
+const api={create,parseConnCode};
 if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.ScoutingReader=api;
 })(typeof window!=="undefined"?window:globalThis);

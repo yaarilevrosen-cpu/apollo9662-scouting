@@ -105,7 +105,7 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   await m.fill("#simMatch","1");await m.click("[data-qr]");await wait(400);
   await m.addScriptTag({content:jsqr});
   const decoded=[];
-  for(let k=0;k<5;k++){
+  for(let k=0;k<20;k++){
     const part=await m.evaluate(async()=>{const svg=document.querySelector("#qrBox svg");const xml=new XMLSerializer().serializeToString(svg);
       const img=new Image();img.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(xml)));await img.decode();
       const c=document.createElement("canvas");c.width=c.height=600;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,600,600);g.drawImage(img,0,0,600,600);
@@ -117,6 +117,23 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   const b64=parts.map(x=>x[4]).join("").replace(/-/g,"+").replace(/_/g,"/");
   let pk=null;try{pk=JSON.parse(zlib.inflateRawSync(Buffer.from(b64,"base64")).toString());}catch(e){}
   ok(pk&&pk.format==="apollo9662-scouting/match"&&pk.match===1&&pk.robots.length===4,"qr: package rebuilt from codes");
+  await m.click("[data-qrclose]");
+  /* ── קוד חיבור לסימולטור ── */
+  const rd=await (await fetch(`http://127.0.0.1:${PORT}/__test/user`,{method:"POST",body:JSON.stringify({email:"sim@example.test",password:"pw-sim-9"})})).json();
+  await q.query("insert into members(uid,role,name) values ($1,'reader','סימולטור')",[rd.id]);
+  await m.fill("#simConnMail","mgr@example.test");await m.fill("#simConnPw","pw-test-1");await m.click("[data-simconn]");
+  ok(await until(async()=>(await m.textContent("#toast")).includes("לא חשבון קריאה"),6000)&&!(await m.$("#connTxt")),"conn code: manager account refused");
+  await m.fill("#simConnMail","sim@example.test");await m.fill("#simConnPw","wrong-pw");await m.click("[data-simconn]");
+  ok(await until(async()=>(await m.textContent("#toast")).includes("לא נכונים"),6000),"conn code: wrong password refused");
+  await m.fill("#simConnPw","pw-sim-9");await m.click("[data-simconn]");
+  ok(await until(()=>m.$("#connTxt"),6000),"conn code: shown for reader account");
+  const cc=await m.inputValue("#connTxt");let cobj=null;
+  try{const mm=/^A9662C:1:([A-Za-z0-9_-]+)$/.exec(cc);cobj=JSON.parse(zlib.inflateRawSync(Buffer.from(mm[1].replace(/-/g,"+").replace(/_/g,"/"),"base64")).toString());}catch(e){}
+  ok(cobj&&cobj.url==="http://supa.test"&&cobj.key==="anon-test"&&cobj.email==="sim@example.test"&&cobj.pw==="pw-sim-9"&&typeof cobj.event==="string","conn code: contains url, key, email, password, event");
+  ok((await m.inputValue("#simConnPw"))==="","conn code: password field cleared");
+  ok(await m.evaluate(()=>!Object.keys(localStorage).some(k=>/probe/.test(k))&&!JSON.stringify(localStorage).includes("pw-sim-9")),"conn code: nothing saved in the browser");
+  ok((await q.query("select count(*)::int n from members where role='manager'")).rows[0].n===1&&await m.evaluate(()=>window.__CLOUD.status().mode!=="offline"),"conn code: manager stays signed in");
+  await m.click("[data-qrclose]");
   ok(s.errs.length===0&&m.errs.length===0,"no page errors "+[...s.errs,...m.errs].join(" | "));
   await browser.close();srv.kill();await q.end();
   console.log(fails.length?fails.length+" FAILED":"ALL PASSED");process.exit(fails.length?1:0);

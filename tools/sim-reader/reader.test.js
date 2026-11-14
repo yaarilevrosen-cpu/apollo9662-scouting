@@ -40,6 +40,11 @@ const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setIt
   ok(await r2.addQR(p2)===1,"reader: QR waits for missing part");
   ok(await r2.addQR(p1)===0&&ups2.at(-1).source==="qr"&&ups2.at(-1).data.match===JSON.parse(sample).match,"reader: QR package rebuilt");
   ok(await r2.addQR("A9662:3/2:zz99:abc")===-1&&await r2.addQR("A9662:1/1:yy88:@@@")===-1&&await r2.addQR("A9662:1/1:xx77:AAAA")===-1,"reader: bad QR returns -1 without throwing");
+  /* קוד חיבור מהמנהל */
+  const cc=x=>"A9662C:1:"+zlib.deflateRawSync(Buffer.from(JSON.stringify(x))).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  const cfg=await R.parseConnCode(" "+cc({url:"https://abc.supabase.co",key:"anon",email:"sim@example.test",pw:"pw-sim",event:"ILCMP"})+"\n");
+  ok(cfg&&cfg.url==="https://abc.supabase.co"&&cfg.anonKey==="anon"&&cfg.email==="sim@example.test"&&cfg.password==="pw-sim"&&cfg.eventCode==="ILCMP","reader: connection code parsed (with spaces and Enter)");
+  ok(await R.parseConnCode(cc({url:"javascript:alert(1)",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://localhost:1@evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode("A9662C:1:@@@")===null&&await R.parseConnCode("A9662C:2:AAAA")===null,"reader: bad connection code returns null");
   /* זיכרון של תחרות אחרת לא נטען */
   const ups3=[];const r3=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",email:"x",password:"y",storage,eventCode:"OTHER",onUpdate:x=>ups3.push(x)});
   await wait(800);ok(ups3.length===0,"reader: cache of another event not used");r3.stop();
