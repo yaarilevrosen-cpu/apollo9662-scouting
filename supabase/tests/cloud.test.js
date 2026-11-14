@@ -23,7 +23,7 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   await q.query(`insert into docs(path,data) values ('control/main',$1)`,[JSON.stringify({cur:1,event:"בדיקה",ev:"",sched:{1:[90001,90002,90003,90004],2:[90005,90006,90007,90008]},assign:{},pitAssign:{}})]);
   const browser=await chromium.launch();
   const jsqr=fs.readFileSync(require.resolve("jsqr/dist/jsQR.js"),"utf8");
-  async function open(vp){
+  async function open(vp,hash){
     const ctx=await browser.newContext({viewport:vp||{width:390,height:844}});const p=await ctx.newPage();p.ctx=ctx;
     const errs=[];p.on("pageerror",e=>errs.push(e.message));p.errs=errs;
     await p.route("http://site/**",r=>{const f=new URL(r.request().url()).pathname.replace(/^\//,"")||"index.html";
@@ -34,7 +34,7 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
     /* הדפדפן חוסם פנייה מאתר לכתובת מקומית, אז הבקשות לענן עוברות דרך כתובת מדומה */
     await p.route("http://supa.test/**",async r=>{const u=r.request().url().replace("http://supa.test",`http://127.0.0.1:${PORT}`);
       try{const resp=await r.fetch({url:u});await r.fulfill({response:resp});}catch(e){await r.abort();}});
-    await p.goto("http://site/index.html");return p;
+    await p.goto("http://site/index.html"+(hash||""));return p;
   }
   /* ── סקאוטר מצטרף ── */
   const s=await open();
@@ -72,7 +72,7 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   /* ── מנהל ── */
   const m=await open({width:1280,height:900});
   await until(()=>m.isVisible("#cloudGate"),8000);
-  await m.click("#cloudGate summary");await m.fill("#cgMail","mgr@example.test");await m.fill("#cgPass","pw-test-1");await m.click("#cgMgr button");
+  await m.click("#cgTabMgr");await m.fill("#cgMail","mgr@example.test");await m.fill("#cgPass","pw-test-1");await m.click("#cgMgr .cg-go");
   ok(await until(async()=>!(await m.isVisible("#cloudGate")),8000),"manager: signed in");
   ok(await until(async()=>(await m.textContent("#roleTag").catch(()=>""))!=="סקאוטר",5000),"manager: has manager role");
   await m.click("#tab-team");await m.fill("#tPick","90001");
@@ -134,6 +134,26 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   ok(await m.evaluate(()=>!Object.keys(localStorage).some(k=>/probe/.test(k))&&!JSON.stringify(localStorage).includes("pw-sim-9")),"conn code: nothing saved in the browser");
   ok((await q.query("select count(*)::int n from members where role='manager'")).rows[0].n===1&&await m.evaluate(()=>window.__CLOUD.status().mode!=="offline"),"conn code: manager stays signed in");
   await m.click("[data-qrclose]");
+  /* ── איפוס סיסמה ── */
+  const r1=await open();await until(()=>r1.isVisible("#cloudGate"),8000);
+  await r1.click("#cgTabMgr");await r1.click("#cgForgot");await r1.fill("#cgRMail","mgr@example.test");await r1.click("#cgReset .cg-go");
+  ok(await until(async()=>(await r1.textContent("#cgMsg")).includes("אם המייל רשום"),6000),"reset: link requested");
+  await r1.ctx.close();
+  const rs=await (await fetch(`http://127.0.0.1:${PORT}/__test/recovery`,{method:"POST",body:JSON.stringify({email:"mgr@example.test"})})).json();
+  const r2=await open(null,`#access_token=${rs.access_token}&expires_at=${rs.expires_at}&expires_in=3600&refresh_token=${rs.refresh_token}&token_type=bearer&type=recovery`);
+  ok(await until(()=>r2.isVisible("#cgNew"),8000),"reset: new-password screen from the email link");
+  await r2.fill("#cgNew1","new-pass-123");await r2.fill("#cgNew2","new-pass-12");await r2.click("#cgNew .cg-go");
+  ok(await until(async()=>(await r2.textContent("#cgMsg")).includes("לא זהות"),4000),"reset: mismatched passwords refused");
+  await r2.fill("#cgNew2","new-pass-123");await r2.click("#cgNew .cg-go");
+  ok(await until(async()=>!(await r2.isVisible("#cloudGate")),8000),"reset: password saved and signed in as manager");
+  ok(!(await r2.evaluate(()=>location.hash)).includes("access_token"),"reset: token removed from the address");
+  const relog=await fetch(`http://127.0.0.1:${PORT}/auth/v1/token?grant_type=password`,{method:"POST",body:JSON.stringify({email:"mgr@example.test",password:"new-pass-123"})});
+  ok(relog.status===200,"reset: new password works");
+  ok(r2.errs.length===0,"reset: no page errors "+r2.errs.join(" | "));
+  await r2.ctx.close();
+  const r3=await open(null,"#error=access_denied&error_code=otp_expired&error_description=expired");
+  ok(await until(async()=>(await r3.isVisible("#cgReset"))&&(await r3.textContent("#cgMsg")).includes("פג"),8000),"reset: expired link explained");
+  await r3.ctx.close();
   ok(s.errs.length===0&&m.errs.length===0,"no page errors "+[...s.errs,...m.errs].join(" | "));
   await browser.close();srv.kill();await q.end();
   console.log(fails.length?fails.length+" FAILED":"ALL PASSED");process.exit(fails.length?1:0);

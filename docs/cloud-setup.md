@@ -32,6 +32,14 @@ insert into settings(key, value) values ('join_code', '<קוד לסקאוטרי�
   on conflict (key) do update set value = excluded.value;
 ```
 
+## 3א. כתובת האתר (בשביל איפוס סיסמה)
+
+Authentication ← URL Configuration:
+- **Site URL:** כתובת האתר (למשל https://yaarilevrosen-cpu.github.io/apollo9662-scouting/).
+- **Redirect URLs:** אותה כתובת.
+
+בלי זה הקישור במייל "שכחתי סיסמה" מוביל לכתובת מקומית ולא עובד. שירות המייל המובנה של סופאבייס שולח רק למיילים של חברי הארגון בסופאבייס, ובמכסה קטנה – מספיק למנהל.
+
 ## 4. זמן אמת
 
 Database ← Publications ← `supabase_realtime`: לוודא ש־`docs`, `sim_profiles`, `sim_meta` מסומנות. (הקובץ מנסה לסמן לבד.)

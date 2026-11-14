@@ -4,7 +4,7 @@
    שימוש: node fake-supabase.js <port> <postgres-url>   (לבדיקות בלבד) */
 const http=require("http");const crypto=require("crypto");const {Pool}=require("pg");
 const PORT=+process.argv[2]||54321;const pool=new Pool({connectionString:process.argv[3]});
-const users=new Map(); /* email -> {id,password} */
+const users=new Map();const recovers=[]; /* email -> {id,password} */
 const b64u=b=>Buffer.from(b).toString("base64").replace(/=+$/,"").replace(/\+/g,"-").replace(/\//g,"_");
 function jwt(sub,extra){const h=b64u(JSON.stringify({alg:"HS256",typ:"JWT"}));const now=Math.floor(Date.now()/1000);
   const p=b64u(JSON.stringify({sub,role:"authenticated",aud:"authenticated",iat:now,exp:now+3600,...extra}));
@@ -34,6 +34,12 @@ const server=http.createServer(async(req,res)=>{
     if(u.pathname==="/auth/v1/signup"&&req.method==="POST"){const id=crypto.randomUUID();return send(res,200,session({id},true));}
     if(u.pathname==="/auth/v1/token"&&u.searchParams.get("grant_type")==="password"){const x=users.get(J.email);if(!x||x.password!==J.password)return send(res,400,{error:"invalid_grant",error_description:"Invalid login credentials"});return send(res,200,session(x,false));}
     if(u.pathname==="/auth/v1/token"&&u.searchParams.get("grant_type")==="refresh_token"){const id=String(J.refresh_token||"").slice(2);return send(res,200,session({id},false));}
+    /* איפוס סיסמה: שליחת קישור (בלי מייל אמיתי), ושינוי סיסמה עם הטוקן מהקישור */
+    if(u.pathname==="/auth/v1/recover"&&req.method==="POST"){recovers.push(J&&J.email);return send(res,200,{});}
+    if(u.pathname==="/auth/v1/user"&&req.method==="PUT"){if(!c)return send(res,401,{msg:"no session"});
+      for(const x of users.values())if(x.id===c.sub&&J&&J.password)x.password=J.password;
+      return send(res,200,{id:c.sub,aud:"authenticated",role:"authenticated",app_metadata:{},user_metadata:{}});}
+    if(u.pathname==="/__test/recovery"){const x=users.get(J.email);if(!x||!recovers.includes(J.email))return send(res,404,{});return send(res,200,session(x,false));}
     if(u.pathname==="/auth/v1/user"){if(!c)return send(res,401,{msg:"no session"});return send(res,200,{id:c.sub,aud:"authenticated",role:"authenticated",is_anonymous:!!c.is_anonymous,app_metadata:{},user_metadata:{}});}
     if(u.pathname==="/auth/v1/logout")return send(res,204);
     /* לבדיקות: יצירת משתמש עם סיסמה */

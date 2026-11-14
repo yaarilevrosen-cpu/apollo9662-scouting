@@ -167,46 +167,142 @@ async function loadMember(){
   return data[0];
 }
 const domReady=()=>document.body?Promise.resolve():new Promise(r=>document.addEventListener("DOMContentLoaded",r,{once:true}));
-async function gate(){
+/* קישור איפוס סיסמה מהמייל: הסימן נמצא בכתובת לפני שהספרייה קוראת ומנקה אותה */
+const H0=String(location.hash||"");
+const RECOVERY=/type=recovery/.test(H0)&&/access_token=/.test(H0);
+const LINK_ERR=/error_code=otp_expired|error=access_denied/.test(H0);
+const SITE=location.origin+location.pathname;
+const GATE_CSS=`#cloudGate{--g-bg:var(--bg,#EDF1EE);--g-card:var(--surface,#fff);--g-ink:var(--ink,#12201A);--g-muted:var(--muted,#536359);--g-line:var(--line,#D0DAD3);--g-sunk:var(--sunk,#E2E8E4);
+    --g-honey:var(--honey,#B27800);--g-on:var(--on-honey,#2E1F00);--g-soft:var(--honey-soft,#F6E4B0);--g-bad:var(--bad,#B72C2C);--g-good:var(--good,#1F7F55);
+    position:fixed;inset:0;z-index:9999;overflow:auto;display:grid;place-items:center;padding:24px 16px;color:var(--g-ink);
+    font:16px/1.45 var(--f-body,"Assistant",system-ui,sans-serif);
+    background:radial-gradient(120% 70% at 50% -10%,var(--g-soft),transparent 60%),var(--g-bg)}
+  #cloudGate *{box-sizing:border-box}
+  #cloudGate .cg-card{width:min(400px,100%);background:var(--g-card);border:1px solid var(--g-line);border-radius:22px;padding:24px 22px 20px;display:grid;gap:16px;
+    box-shadow:0 1px 0 rgba(18,32,26,.04),0 24px 48px -28px rgba(18,32,26,.45)}
+  #cloudGate .cg-head{display:flex;align-items:center;gap:12px}
+  #cloudGate .cg-mark{width:46px;height:46px;flex:none}
+  #cloudGate h2{margin:0;font:400 24px/1.1 var(--f-display,"Secular One",system-ui,sans-serif)}
+  #cloudGate .cg-sub{margin:2px 0 0;color:var(--g-muted);font-size:14px}
+  #cloudGate .cg-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--g-sunk);border-radius:12px;padding:4px;gap:4px}
+  #cloudGate .cg-tabs button{min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--g-muted);font:700 15px var(--f-body,system-ui);cursor:pointer}
+  #cloudGate .cg-tabs button[aria-selected="true"]{background:var(--g-card);color:var(--g-ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  #cloudGate form{display:grid;gap:14px}
+  #cloudGate label{display:grid;gap:6px;font-weight:700;font-size:15px}
+  #cloudGate .cg-hint{font-weight:400;color:var(--g-muted);font-size:13px}
+  #cloudGate input{font:inherit;font-size:17px;min-height:50px;padding:10px 14px;border:1.5px solid var(--g-muted);border-radius:12px;background:var(--g-card);color:var(--g-ink);width:100%}
+  #cloudGate input:focus{outline:3px solid var(--g-honey);outline-offset:1px;border-color:var(--g-honey)}
+  #cloudGate input.cg-code{font-family:var(--f-num,ui-monospace,monospace);letter-spacing:.18em;text-transform:uppercase;text-align:center;font-size:20px}
+  #cloudGate .cg-pw{position:relative}
+  #cloudGate .cg-pw input{padding-inline-start:64px}
+  #cloudGate .cg-eye{position:absolute;inset-inline-start:6px;top:50%;transform:translateY(-50%);min-height:38px;padding:0 10px;border:0;border-radius:8px;background:var(--g-sunk);color:var(--g-ink);font:600 13px var(--f-body,system-ui);cursor:pointer}
+  #cloudGate .cg-go{min-height:52px;border:0;border-radius:12px;background:var(--g-honey);color:var(--g-on);font:800 19px var(--f-body,system-ui);cursor:pointer}
+  #cloudGate .cg-go:disabled{opacity:.6;cursor:progress}
+  #cloudGate .cg-go:focus-visible,#cloudGate .cg-tabs button:focus-visible,#cloudGate .cg-link:focus-visible{outline:3px solid var(--g-honey);outline-offset:2px}
+  #cloudGate .cg-link{justify-self:start;min-height:44px;border:0;background:none;padding:6px 0;color:var(--g-muted);font:600 14px var(--f-body,system-ui);text-decoration:underline;cursor:pointer}
+  #cloudGate .cg-msg{margin:0;min-height:1.3em;font-weight:600;color:var(--g-bad)}
+  #cloudGate .cg-msg.ok{color:var(--g-good)}
+  #cloudGate .cg-foot{margin:0;color:var(--g-muted);font-size:12.5px;text-align:center}
+  #cloudGate [hidden]{display:none!important}`;
+const HEX=`<svg class="cg-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3l18 10.5v21L24 45 6 34.5v-21z" fill="var(--g-honey)"/><path d="M24 13l9 5.2v10.5L24 34l-9-5.3V18.2z" fill="var(--g-card)" opacity=".92"/><path d="M24 19.5l3.7 2.2v4.5L24 28.4l-3.7-2.2v-4.5z" fill="var(--g-honey)"/></svg>`;
+const pwField=(id,ac)=>`<div class="cg-pw"><input id="${id}" type="password" required dir="ltr" autocomplete="${ac}" minlength="${ac==="new-password"?8:1}"><button type="button" class="cg-eye" data-eye="${id}" aria-label="הצגת הסיסמה">הצג</button></div>`;
+async function gate(mode){
   await domReady();
   return new Promise(resolve=>{
-    const box=document.createElement("div");box.id="cloudGate";box.setAttribute("dir","rtl");
-    box.innerHTML=`<div class="cg-card"><h2>סקאוטינג ביובאז</h2>
-      <form id="cgJoin"><label>השם שלך<input id="cgName" maxlength="40" autocomplete="nickname" required></label>
-      <label>קוד ההצטרפות<input id="cgCode" maxlength="32" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr" required></label>
-      <button type="submit">כניסה</button></form>
-      <details><summary>כניסת מנהל</summary><form id="cgMgr"><label>מייל<input id="cgMail" type="email" required dir="ltr"></label>
-      <label>סיסמה<input id="cgPass" type="password" required dir="ltr"></label><button type="submit">כניסה</button></form></details>
-      <p class="cg-msg" id="cgMsg" role="status"></p></div>`;
-    const css=document.createElement("style");css.textContent=`#cloudGate{position:fixed;inset:0;z-index:9999;background:#eef1ee;display:grid;place-items:center;padding:16px;font:16px system-ui,sans-serif}
-      #cloudGate .cg-card{background:#fff;border:1px solid #d5dad6;border-radius:16px;padding:20px;width:min(380px,100%);display:grid;gap:12px}
-      #cloudGate h2{margin:0}#cloudGate form{display:grid;gap:10px}#cloudGate label{display:grid;gap:4px;font-weight:600}
-      #cloudGate input{font:inherit;padding:10px;border:1px solid #d5dad6;border-radius:10px}#cloudGate button{font:inherit;font-weight:700;padding:12px;border:0;border-radius:10px;background:#1b1f1c;color:#fff}
-      #cloudGate .cg-msg{color:#c94a3d;min-height:1.2em;margin:0}`;
-    document.head.appendChild(css);document.body.appendChild(box);
-    const msg=t=>{box.querySelector("#cgMsg").textContent=t;};
-    box.querySelector("#cgJoin").addEventListener("submit",async ev=>{
-      ev.preventDefault();msg("");
+    if(!document.getElementById("cgCss")){const css=document.createElement("style");css.id="cgCss";css.textContent=GATE_CSS;document.head.appendChild(css);}
+    const box=document.createElement("div");box.id="cloudGate";box.setAttribute("dir","rtl");box.setAttribute("lang","he");
+    box.innerHTML=`<div class="cg-card" role="dialog" aria-modal="true" aria-labelledby="cgTitle">
+      <div class="cg-head">${HEX}<div><h2 id="cgTitle">סקאוטינג ביובאז</h2><p class="cg-sub">אפולו 9662 · חדר הנתונים של התחרות</p></div></div>
+      <div class="cg-tabs" role="tablist" id="cgTabs">
+        <button type="button" role="tab" id="cgTabScout" aria-selected="true" aria-controls="cgJoin">סקאוטר</button>
+        <button type="button" role="tab" id="cgTabMgr" aria-selected="false" aria-controls="cgMgr">מנהל</button></div>
+      <form id="cgJoin" role="tabpanel" aria-labelledby="cgTabScout">
+        <label>השם שלך<input id="cgName" maxlength="40" autocomplete="nickname" required></label>
+        <label>קוד ההצטרפות <span class="cg-hint">מהמנהל. לא משנה אם באותיות גדולות או קטנות</span>
+          <input id="cgCode" class="cg-code" maxlength="32" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" dir="ltr" required></label>
+        <button type="submit" class="cg-go">כניסה</button></form>
+      <form id="cgMgr" role="tabpanel" aria-labelledby="cgTabMgr" hidden>
+        <label>מייל<input id="cgMail" type="email" required dir="ltr" autocomplete="username"></label>
+        <label>סיסמה${pwField("cgPass","current-password")}</label>
+        <button type="submit" class="cg-go">כניסת מנהל</button>
+        <button type="button" class="cg-link" id="cgForgot">שכחתי סיסמה</button></form>
+      <form id="cgReset" hidden>
+        <p class="cg-sub" style="margin:0">נשלח קישור לקביעת סיסמה חדשה למייל של המנהל.</p>
+        <label>מייל<input id="cgRMail" type="email" required dir="ltr" autocomplete="username"></label>
+        <button type="submit" class="cg-go">שליחת קישור</button>
+        <button type="button" class="cg-link" id="cgBack">חזרה לכניסה</button></form>
+      <form id="cgNew" hidden>
+        <p class="cg-sub" style="margin:0">קביעת סיסמה חדשה לחשבון המנהל. לפחות 8 תווים.</p>
+        <label>סיסמה חדשה${pwField("cgNew1","new-password")}</label>
+        <label>שוב, לאימות${pwField("cgNew2","new-password")}</label>
+        <button type="submit" class="cg-go">שמירת הסיסמה</button>
+        <button type="button" class="cg-link" id="cgNewCancel">ביטול, חזרה לכניסה</button></form>
+      <p class="cg-msg" id="cgMsg" role="status" aria-live="polite"></p>
+      <p class="cg-foot">בלי רשת? הרשומות נשמרות בטלפון ונשלחות כשהרשת חוזרת.</p></div>`;
+    document.body.appendChild(box);
+    const inerted=[...document.body.children].filter(el=>el!==box&&!el.inert);inerted.forEach(el=>{el.inert=true;});
+    const done=()=>{inerted.forEach(el=>{el.inert=false;});box.remove();resolve();};
+    const $g=id=>box.querySelector("#"+id);
+    const msg=(t,ok)=>{const m=$g("cgMsg");m.textContent=t||"";m.classList.toggle("ok",!!ok);};
+    const show=v=>{for(const f of ["cgJoin","cgMgr","cgReset","cgNew"])$g(f).hidden=f!==v;
+      $g("cgTabs").hidden=v==="cgReset"||v==="cgNew";
+      $g("cgTabScout").setAttribute("aria-selected",String(v==="cgJoin"));$g("cgTabMgr").setAttribute("aria-selected",String(v!=="cgJoin"));msg("");
+      const first=$g(v).querySelector("input");if(first)setTimeout(()=>first.focus(),0);};
+    /* כפתור בזמן עבודה: לא לוחצים פעמיים, ורואים שמשהו קורה */
+    const busy=async(form,label,fn)=>{const b=form.querySelector(".cg-go");const t=b.textContent;b.disabled=true;b.textContent=label;
+      try{await fn();}finally{b.disabled=false;b.textContent=t;}};
+    $g("cgTabScout").addEventListener("click",()=>show("cgJoin"));
+    $g("cgTabMgr").addEventListener("click",()=>show("cgMgr"));
+    $g("cgForgot").addEventListener("click",()=>{show("cgReset");$g("cgRMail").value=$g("cgMail").value;});
+    $g("cgBack").addEventListener("click",()=>show("cgMgr"));
+    $g("cgNewCancel").addEventListener("click",async()=>{try{await sb().auth.signOut({scope:"local"});}catch(e){}state.role=null;show("cgMgr");});
+    /* חצים בין הלשוניות */
+    $g("cgTabs").addEventListener("keydown",ev=>{if(!["ArrowLeft","ArrowRight"].includes(ev.key))return;ev.preventDefault();
+      const toMgr=$g("cgTabScout")===document.activeElement;(toMgr?$g("cgTabMgr"):$g("cgTabScout")).focus();show(toMgr?"cgMgr":"cgJoin");});
+    box.addEventListener("click",ev=>{const e=ev.target.closest("[data-eye]");if(!e)return;const i=$g(e.dataset.eye);const vis=i.type==="password";
+      i.type=vis?"text":"password";e.textContent=vis?"הסתר":"הצג";e.setAttribute("aria-label",vis?"הסתרת הסיסמה":"הצגת הסיסמה");});
+    $g("cgJoin").addEventListener("submit",ev=>{ev.preventDefault();msg("");busy($g("cgJoin"),"נכנס…",async()=>{
       try{
         let {data:{session}}=await sb().auth.getSession();
         if(!session){const r=await sb().auth.signInAnonymously();if(r.error)throw r.error;}
         const old=savedMember();
-        const {data:res,error}=await sb().rpc("join_team",{code:box.querySelector("#cgCode").value.trim(),display_name:box.querySelector("#cgName").value.trim()});
+        const {data:res,error}=await sb().rpc("join_team",{code:$g("cgCode").value.trim(),display_name:$g("cgName").value.trim()});
         if(error)throw error;
         if(res==="bad_code"){msg("הקוד לא נכון");return;}
-        if(res==="rate_limited"){msg("יותר מדי ניסיונות. נסה שוב בעוד כמה דקות");return;}
-        if(res==="full"){msg("הצוות מלא. פנה למנהל");return;}
-        if(await loadMember()){if(old&&old.uid&&old.uid!==state.uid)migrate(old.uid,state.uid);box.remove();resolve();}
-      }catch(e){const c=errCode(e);msg(c==="unavailable"?"אין רשת. נסה שוב, או השתמש בגיבוי של הקבוצה":"הכניסה לא הצליחה");}
-    });
-    box.querySelector("#cgMgr").addEventListener("submit",async ev=>{
-      ev.preventDefault();msg("");
+        if(res==="rate_limited"){msg("יותר מדי ניסיונות. לנסות שוב בעוד כמה דקות");return;}
+        if(res==="full"){msg("הצוות מלא. לפנות למנהל");return;}
+        if(await loadMember()){if(old&&old.uid&&old.uid!==state.uid)migrate(old.uid,state.uid);done();}
+      }catch(e){const c=errCode(e);msg(c==="unavailable"?"אין רשת. לנסות שוב, או להשתמש בגיבוי של הקבוצה":"הכניסה לא הצליחה");}});});
+    $g("cgMgr").addEventListener("submit",ev=>{ev.preventDefault();msg("");busy($g("cgMgr"),"נכנס…",async()=>{
       try{
-        const {error}=await sb().auth.signInWithPassword({email:box.querySelector("#cgMail").value.trim(),password:box.querySelector("#cgPass").value});
+        const {error}=await sb().auth.signInWithPassword({email:$g("cgMail").value.trim(),password:$g("cgPass").value});
         if(error)throw error;
-        if(await loadMember()){box.remove();resolve();}else msg("החשבון הזה עוד לא מוגדר כמנהל");
-      }catch(e){msg(errCode(e)==="unavailable"?"אין רשת. נסה שוב":"מייל או סיסמה לא נכונים");}
-    });
+        if(await loadMember()){done();}else msg("החשבון הזה עוד לא מוגדר כמנהל");
+      }catch(e){msg(errCode(e)==="unavailable"?"אין רשת. לנסות שוב":"מייל או סיסמה לא נכונים");}});});
+    /* איפוס: אותה תשובה גם למייל שלא רשום, כדי לא לחשוף אילו מיילים קיימים */
+    $g("cgReset").addEventListener("submit",ev=>{ev.preventDefault();msg("");busy($g("cgReset"),"שולח…",async()=>{
+      try{
+        const {error}=await sb().auth.resetPasswordForEmail($g("cgRMail").value.trim(),{redirectTo:SITE});
+        /* השרת עונה 200 גם למייל שלא רשום, ולכן הצגת שגיאה אמיתית לא חושפת אילו מיילים קיימים */
+        if(error&&(error.status===429||/rate_limit/.test(String(error.code||""))))throw Object.assign(new Error("rate"),{code:"rate"});
+        if(error)throw error;
+        msg("אם המייל רשום, נשלח אליו קישור. לבדוק גם בספאם. הקישור תקף שעה.",true);
+      }catch(e){msg(e.code==="rate"?"נשלח כבר מייל לפני רגע. לחכות כמה דקות ולנסות שוב":errCode(e)==="unavailable"?"אין רשת. לנסות שוב":"השליחה לא הצליחה. לנסות שוב מאוחר יותר");}});});
+    $g("cgNew").addEventListener("submit",ev=>{ev.preventDefault();msg("");
+      const a=$g("cgNew1").value,b=$g("cgNew2").value;
+      if(a.length<8){msg("לפחות 8 תווים");return;}
+      if(a!==b){msg("שתי הסיסמאות לא זהות");return;}
+      busy($g("cgNew"),"שומר…",async()=>{
+        try{
+          const {error}=await sb().auth.updateUser({password:a});
+          if(error)throw error;
+          $g("cgNew1").value="";$g("cgNew2").value="";
+          if(await loadMember()){done();}else{msg("הסיסמה נשמרה, אבל החשבון לא מוגדר כמנהל");}
+        }catch(e){const t=String(e.code||"")+" "+String(e.message||"");
+          msg(errCode(e)==="unavailable"?"אין רשת. לנסות שוב":/same_password|different from the old/i.test(t)?"זו הסיסמה הקודמת. לבחור סיסמה אחרת":/weak|short|characters/i.test(t)?"הסיסמה חלשה מדי. לבחור ארוכה יותר":"השמירה לא הצליחה. אפשר לבקש קישור חדש");}});});
+    if(mode==="recovery")show("cgNew");
+    else if(mode==="link_error"){show("cgReset");msg("הקישור פג או כבר נוצל. אפשר לשלוח קישור חדש");}
+    else show("cgJoin");
   });
 }
 /* נכנסת מחדש עם מזהה חדש: הרשומות שלא נשלחו עוברות איתה, לא נשארות תקועות בטלפון */
@@ -229,7 +325,11 @@ function pendingCount(){let n=0;try{for(let i=0;i<localStorage.length;i++){const
       if(c==="unavailable"&&saved){state.uid=saved.uid;state.role=saved.role;state.name=saved.name;m=saved;setMode("offline");}
       else throw e;
     }
-    if(!m)await gate();
+    /* הגענו מקישור איפוס: קודם קובעים סיסמה חדשה, ורק אז נכנסים. מנקים את הכתובת כדי שרענון לא יחזור לכאן */
+    if(RECOVERY||LINK_ERR){try{history.replaceState(null,"",SITE);}catch(e){}}
+    if(RECOVERY){const {data:{session}}=await sb().auth.getSession();await gate(session?"recovery":"link_error");m=state.role?{role:state.role}:m;}
+    else if(LINK_ERR&&!m)await gate("link_error");
+    else if(!m)await gate();
     readyResolve();
   }catch(e){try{console.warn("cloud start",e&&(e.message||e));}catch(_){}
     const c=errCode(e);
