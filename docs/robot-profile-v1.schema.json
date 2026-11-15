@@ -14,6 +14,14 @@
     "robots"
   ],
   "properties": {
+    "current_match": {
+      "description": "The match the event is on right now (added 15.11.2026). Optional.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
     "format": {
       "enum": [
         "apollo9662-scouting/match",
@@ -238,7 +246,6 @@
         "intake_from",
         "intake_side",
         "shooters",
-        "shoot_balls",
         "shooter_mount",
         "max_range_in",
         "shoot_zones",
@@ -310,6 +317,7 @@
             "front",
             "back",
             "side",
+            "both",
             null
           ]
         },

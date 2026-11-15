@@ -75,9 +75,10 @@ async function fetchKey(kind,key){
   const rows=heads.map(h=>fresh.get(h.path)||byPath.get(h.path)).filter(Boolean);
   lastCol.set(key,rows);return rows;
 }
-const inflight=new Map();
+const inflight=new Map(),again=new Set();
 async function refresh(kind,key){
-  const id=kind+":"+key;if(inflight.has(id))return inflight.get(id);
+  /* משיכה שכבר בדרך התחילה לפני השינוי: מסמנים להריץ עוד אחת כשהיא נגמרת, כדי לא לפספס אותו */
+  const id=kind+":"+key;if(inflight.has(id)){again.add(id);return inflight.get(id);}
   const p=(async()=>{
     try{
       const v=await fetchKey(kind,key);
@@ -90,7 +91,7 @@ async function refresh(kind,key){
       const c=errCode(e);
       if(c==="unavailable"){setMode("offline");}
       else for(const w of watchers)if(w.kind===kind&&w.key===key&&w.err)try{w.err(fail(e));}catch(_){}
-    }finally{inflight.delete(id);}
+    }finally{inflight.delete(id);if(again.delete(id))refresh(kind,key);}
   })();
   inflight.set(id,p);return p;
 }
@@ -167,6 +168,8 @@ async function loadMember(){
   return data[0];
 }
 const domReady=()=>document.body?Promise.resolve():new Promise(r=>document.addEventListener("DOMContentLoaded",r,{once:true}));
+/* עובד רקע: האפליקציה נפתחת גם בלי רשת (רק באתר עצמו, בכתובת מאובטחת) */
+try{if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}catch(e){}
 /* קישור איפוס סיסמה מהמייל: הסימן נמצא בכתובת לפני שהספרייה קוראת ומנקה אותה */
 const H0=String(location.hash||"");
 const RECOVERY=/type=recovery/.test(H0)&&/access_token=/.test(H0);
@@ -222,7 +225,7 @@ async function gate(mode){
       <div class="cg-tabs" role="tablist" id="cgTabs">
         <button type="button" role="tab" id="cgTabScout" aria-selected="true" aria-controls="cgJoin">סקאוטר</button>
         <button type="button" role="tab" id="cgTabMgr" aria-selected="false" aria-controls="cgMgr">מנהל</button></div>
-      <form id="cgJoin" role="tabpanel" aria-labelledby="cgTabScout">
+      <form id="cgJoin" role="tabpanel" aria-labelledby="cgTabScout" novalidate>
         <div class="cg-modes" role="group" aria-labelledby="cgModeL"><span id="cgModeL" class="cg-ml">מה עושים היום?</span>
           <button type="button" class="cg-mode" data-gmode="match" aria-pressed="false"><b>מאצ׳ים</b><span>צופים ומזינים</span></button>
           <button type="button" class="cg-mode" data-gmode="pit" aria-pressed="false"><b>פיט</b><span>שואלים את הקבוצות</span></button></div>
@@ -230,7 +233,7 @@ async function gate(mode){
         <label>קוד ההצטרפות <span class="cg-hint">מהמנהל. לא משנה אם באותיות גדולות או קטנות</span>
           <input id="cgCode" class="cg-code" maxlength="32" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" dir="ltr" required></label>
         <button type="submit" class="cg-go">כניסה</button></form>
-      <form id="cgMgr" role="tabpanel" aria-labelledby="cgTabMgr" hidden>
+      <form id="cgMgr" role="tabpanel" aria-labelledby="cgTabMgr" hidden novalidate>
         <label>מייל<input id="cgMail" type="email" required dir="ltr" autocomplete="username"></label>
         <label>סיסמה${pwField("cgPass","current-password")}</label>
         <button type="submit" class="cg-go">כניסת מנהל</button>
@@ -276,6 +279,8 @@ async function gate(mode){
       i.type=vis?"text":"password";e.textContent=vis?"הסתר":"הצג";e.setAttribute("aria-label",vis?"הסתרת הסיסמה":"הצגת הסיסמה");});
     $g("cgJoin").addEventListener("submit",ev=>{ev.preventDefault();msg("");
       if(!gmode){msg("לבחור קודם: מאצ׳ים או פיט");box.querySelector("[data-gmode]").focus();return;}
+      if($g("cgName").value.trim().length<2){msg("לכתוב את השם שלך");$g("cgName").focus();return;}
+      if(!$g("cgCode").value.trim()){msg("לכתוב את קוד ההצטרפות מהמנהל");$g("cgCode").focus();return;}
       try{localStorage.setItem("bbz-mode",JSON.stringify(gmode));}catch(e){}
       busy($g("cgJoin"),"נכנס…",async()=>{
       try{
@@ -289,7 +294,10 @@ async function gate(mode){
         if(res==="full"){msg("הצוות מלא. לפנות למנהל");return;}
         if(await loadMember()){if(old&&old.uid&&old.uid!==state.uid)migrate(old.uid,state.uid);done();}
       }catch(e){const c=errCode(e);msg(c==="unavailable"?"אין רשת. לנסות שוב, או להשתמש בגיבוי של הקבוצה":"הכניסה לא הצליחה");}});});
-    $g("cgMgr").addEventListener("submit",ev=>{ev.preventDefault();msg("");busy($g("cgMgr"),"נכנס…",async()=>{
+    $g("cgMgr").addEventListener("submit",ev=>{ev.preventDefault();msg("");
+      if(!/^[^@\s]+@[^@\s]+$/.test($g("cgMail").value.trim())){msg("לכתוב את המייל של המנהל");$g("cgMail").focus();return;}
+      if(!$g("cgPass").value){msg("לכתוב סיסמה");$g("cgPass").focus();return;}
+      busy($g("cgMgr"),"נכנס…",async()=>{
       try{
         const {error}=await sb().auth.signInWithPassword({email:$g("cgMail").value.trim(),password:$g("cgPass").value});
         if(error)throw error;
@@ -353,6 +361,12 @@ function pendingCount(){let n=0;try{for(let i=0;i<localStorage.length;i++){const
     if(c==="not_configured")domReady().then(()=>{const d=document.createElement("div");d.setAttribute("dir","rtl");d.setAttribute("role","alert");
       d.style.cssText="position:sticky;top:0;z-index:9998;padding:14px 16px;background:#c94a3d;color:#fff;font:600 15px system-ui,sans-serif";
       d.textContent="האתר עוד לא מחובר לענן, ולכן אי אפשר לאסוף בו נתונים. להשתמש בארטיפקט ״סקאוטינג ביובאז״ ולהודיע למנהל.";document.body.prepend(d);});
+    /* תקלה רגעית בכניסה (רשת של אולם, חשבון שפג): לא נתקעים על מסך טעינה – כפתור לנסות שוב */
+    else domReady().then(()=>{if(document.getElementById("cgRetry"))return;const d=document.createElement("div");d.setAttribute("dir","rtl");d.setAttribute("role","alert");
+      d.style.cssText="position:sticky;top:0;z-index:9998;padding:12px 16px;background:#B27800;color:#1d1400;font:600 15px system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      const s=document.createElement("span");s.textContent="החיבור לענן נכשל. הרשומות שכבר שמורות בטלפון לא נמחקות.";
+      const b=document.createElement("button");b.id="cgRetry";b.type="button";b.textContent="לנסות שוב";b.style.cssText="min-height:44px;padding:8px 16px;border-radius:10px;border:0;font:700 15px system-ui,sans-serif;background:#1d1400;color:#fff";
+      b.onclick=()=>location.reload();d.append(s,b);document.body.prepend(d);});
     setMode("offline",c);readyReject(fail(e));}
 })();
 
@@ -390,7 +404,7 @@ async function publishProfiles(pkg,prev){
   const ev=pkg.event_code||"";const rows=[];const next={};
   for(const r of pkg.robots){const s=JSON.stringify(r);next[r.team]=s;if(!prev||prev[r.team]!==s)rows.push({event_code:ev,team:r.team,data:r});}
   if(rows.length){const {error}=await sb().from("sim_profiles").upsert(rows,{onConflict:"event_code,team"});if(error)throw fail(error);}
-  const meta={format:pkg.format,version:pkg.version,generated_at:pkg.generated_at,event:pkg.event,event_code:ev,units:pkg.units,schedule:pkg.schedule,teams:pkg.robots.map(r=>r.team)};
+  const meta={format:pkg.format,version:pkg.version,generated_at:pkg.generated_at,event:pkg.event,event_code:ev,current_match:pkg.current_match??null,units:pkg.units,schedule:pkg.schedule,teams:pkg.robots.map(r=>r.team)};
   const {error}=await sb().from("sim_meta").upsert({event_code:ev,data:meta},{onConflict:"event_code"});
   if(error)throw fail(error);
   /* קבוצות שכבר לא בתחרות */

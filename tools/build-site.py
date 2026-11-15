@@ -22,12 +22,14 @@ if os.environ.get("REQUIRE_CONFIG") == "1":
         sys.exit("config.js מכיל את המפתח הסודי! להחליף במפתח הציבורי, ולהחליף את המפתח הסודי בסופאבייס")
 out = root / "site"
 out.mkdir(exist_ok=True)
-for f in ["config.js", "cloud.js"]:
+for f in ["config.js", "cloud.js", "sw.js", "manifest.json", "icon.svg"]:
     shutil.copy(root / "app" / f, out / f)
 (out / "vendor").mkdir(exist_ok=True)
 shutil.copy(root / "app" / "vendor" / "supabase.js", out / "vendor" / "supabase.js")
 app = (root / "app" / "index.html").read_text(encoding="utf-8")
-inject = '<script src="vendor/supabase.js"></script><script src="config.js"></script><script src="cloud.js"></script>'
+inject = ('<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><meta name="theme-color" content="#12201A">'
+          '<meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon.svg">'
+          '<script src="vendor/supabase.js"></script><script src="config.js"></script><script src="cloud.js"></script>')
 assert app.count("<head>") == 1
 (out / "index.html").write_text(app.replace("<head>", "<head>" + inject, 1), encoding="utf-8")
 (out / ".nojekyll").write_text("")
