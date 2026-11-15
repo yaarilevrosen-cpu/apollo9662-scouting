@@ -121,5 +121,18 @@ select pg_temp.expect_fail($$select * from write_rate$$,'scout reads write_rate'
 select pg_temp.as_user(:'mgr');
 do $$ begin for i in 1..25 loop perform doc_write('control/main','{"cur":2}','fields'); end loop; end $$;
 
+-- גרסה 14: אסימון קריאה לסימולטור
+select pg_temp.as_user(:'s2');
+select pg_temp.expect_fail($$select set_sim_token('abcdefghijklmnopqrstuvwxyz12')$$,'scout sets sim token');
+select pg_temp.as_user(:'mgr');
+select pg_temp.expect_fail($$select set_sim_token('short')$$,'short sim token');
+select set_sim_token('Tok1234567890abcdefghijklmn');
+reset role; set role anon;
+do $$ begin if jsonb_array_length(sim_read('Tok1234567890abcdefghijklmn','')->'profiles')<>1 or (sim_read('Tok1234567890abcdefghijklmn','')->'meta') is null then raise exception 'token read failed'; end if; end $$;
+select pg_temp.expect_fail($$select sim_read('wrongwrongwrongwrongwrong1','')$$,'bad token reads');
+select pg_temp.expect_fail($$select sim_read('','')$$,'empty token reads');
+select pg_temp.expect_fail($$select * from settings$$,'anon reads settings');
+reset role; set role authenticated;
+
 reset role;
 select 'ALL RLS TESTS PASSED' as result;

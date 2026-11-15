@@ -212,6 +212,29 @@ end $$;
 revoke all on function public.note_write() from public;
 grant execute on function public.note_write() to authenticated;
 
+-- אסימון קריאה לסימולטור (גרסה 14): במקום סיסמה בקוד החיבור. המנהל מחליף אותו בלחיצה, והקוד הישן מפסיק לעבוד מיד
+create or replace function public.set_sim_token(tok text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_manager() then raise exception 'not_manager'; end if;
+  if tok is null or tok !~ '^[A-Za-z0-9]{24,64}$' then raise exception 'bad_token'; end if;
+  insert into public.settings(key, value) values ('sim_token', tok) on conflict (key) do update set value = excluded.value;
+end $$;
+revoke all on function public.set_sim_token(text) from public;
+grant execute on function public.set_sim_token(text) to authenticated;
+-- קריאה עם האסימון: רק פרופילים ומידע התחרות (בדיוק מה שחשבון הקריאה רואה). גם בלי חשבון
+create or replace function public.sim_read(tok text, ev text default '') returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare want text;
+begin
+  select value into want from public.settings where key = 'sim_token';
+  if want is null or tok is null or length(tok) < 24 or tok <> want then raise exception 'bad_token'; end if;
+  return jsonb_build_object(
+    'meta', (select jsonb_build_object('data', data, 'updated_at', updated_at) from public.sim_meta where event_code = coalesce(ev, '')),
+    'profiles', coalesce((select jsonb_agg(jsonb_build_object('team', team, 'data', data, 'updated_at', updated_at)) from public.sim_profiles where event_code = coalesce(ev, '')), '[]'::jsonb));
+end $$;
+revoke all on function public.sim_read(text, text) from public;
+
 -- כתיבה למסמך: set (החלפה) או merge (מיזוג עמוק). רץ בהרשאות המשתמש, כך שהמדיניות חלה.
 drop function if exists public.doc_write(text, jsonb, boolean);
 drop function if exists public.jsonb_deep_merge(jsonb, jsonb);
@@ -262,6 +285,7 @@ create trigger simm_stamp before insert or update on public.sim_meta for each ro
 
 -- סופאבייס נותן הרשאת הרצה לכל פונקציה חדשה; אנונימי בלי חשבון לא צריך אף אחת
 revoke execute on all functions in schema public from anon;
+grant execute on function public.sim_read(text, text) to anon, authenticated;
 revoke execute on function public.jsonb_deep_merge(jsonb, jsonb, int) from public;
 grant execute on function public.jsonb_deep_merge(jsonb, jsonb, int) to authenticated;
 

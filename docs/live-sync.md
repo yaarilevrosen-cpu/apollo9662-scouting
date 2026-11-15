@@ -48,3 +48,12 @@
 - החשבון של הסימולטור קורא רק את שתי הטבלאות האלה. לא רשומות גולמיות, לא שמות סקאוטרים, לא הערות.
 - הכתובת, המפתח והסיסמה – בקובץ הגדרות מקומי שלא נכנס למאגר. לא במסמכים משותפים.
 - לא שומרים פרופילים אמיתיים במאגר, בגיבוי או בדיווח באג.
+
+## קריאה עם אסימון (גרסה 14, בלי סיסמה)
+
+קוד החיבור `A9662C:2:` = בסיס 64 לכתובות של deflate-raw של `{ url, key, token, event }`. אין בו סיסמה.
+
+- קוראים: `POST {url}/rest/v1/rpc/sim_read` עם הכותרות `apikey: {key}` ו־`Authorization: Bearer {key}`, והגוף `{ "tok": token, "ev": event }`.
+- מחזיר `{ meta: { data, updated_at } | null, profiles: [ { team, data, updated_at } ] }` – בדיוק מה שחשבון הקריאה רואה ב־`sim_meta` וב־`sim_profiles`.
+- אסימון שגוי או ישן – שגיאה `bad_token`. אין ערוץ חי: קוראים כל דקה.
+- `tools/sim-reader/scouting-reader.js` מכיר את שתי הגרסאות: `parseConnCode` מחזיר `token` במקום `email`/`password`, ו־`create` עובד עם שניהם.

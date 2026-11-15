@@ -61,14 +61,14 @@ const R=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-5000,fm:2,sv:true,...x});
   await T(s,()=>{CLK.t0=Date.now()-60000;renderClock();return 1;});await s.waitForTimeout(300);
   for(let i=0;i<3;i++)await s.click('#shotStrip [data-strip="shotsHit"]');
   await s.click('#shotStrip [data-strip="tFlip"]');await s.click('#shotStrip [data-strip="shotsHit"]');
-  ok(await T(s,()=>F.shotsHit===4&&F.tFlip===1&&F.hitT.length===5&&F.flipT.length===2&&F.aHit===1),'strip: hits and flips recorded with times');
+  ok(await T(s,()=>F.shotsHit===4&&F.tFlip===1&&F.hitT.length===4&&F.aHitT.length===1&&F.flipT.length===2&&F.flipH.join()==="1,4"&&F.aHit===1),'strip: hits and flips recorded with times');
   await s.click('#qchips [data-tag="block"]');
   ok(await T(s,()=>F.tags.includes("block")),'tags: one tap');
   await T(s,()=>{CLK.t0=Date.now()-176000;renderClock();return 1;});await s.waitForTimeout(400);
   ok(await T(s,()=>F.cell===1),'end: balls left in the cell = hits after the last flip');
   await s.click('#formSave');await s.waitForTimeout(400);
   const saved=await T(s,()=>window.__STORE["entries/s1"].rows["m1-t90001"]);
-  ok(saved&&saved.fm===2&&saved.hitT.length===5&&saved.tags[0]==="block"&&saved.tFlip===1,'save: new fields stored '+JSON.stringify(saved&&{fm:saved.fm,tFlip:saved.tFlip}));
+  ok(saved&&saved.fm===2&&saved.hitT.length===4&&saved.tags[0]==="block"&&saved.tFlip===1,'save: new fields stored '+JSON.stringify(saved&&{fm:saved.fm,tFlip:saved.tFlip}));
   ok(s.errs.length===0,'scout: no JS errors '+s.errs.join('|'));
 
   // ── רשומה ישנה בעריכה: המונים הישנים ──

@@ -468,6 +468,24 @@
             null
           ],
           "description": "אילו כדורים הרובוט יורה: רק פולן, גם פולן וגם נקטר, או רק נקטר. null = לא נשאל, או רובוט בלי יורה"
+        },
+        "tips_per_match": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 20
+            }
+          ]
+        },
+        "shoots_other_side_after_tip": {
+          "$ref": "#/$defs/boolOrNull"
+        },
+        "auto_adaptable": {
+          "$ref": "#/$defs/boolOrNull"
         }
       }
     },

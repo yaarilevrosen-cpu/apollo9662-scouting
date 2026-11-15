@@ -23,7 +23,16 @@ const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setIt
   await wait(11000);
   const upd=ups.slice().reverse().find(x=>x.source!=="cache");
   ok(upd&&upd.data.robots.find(x=>x.team===90001).matches_seen===99,"reader: cloud change arrives within 10 s");
-  r.stop();srv.kill();await wait(300);
+  r.stop();
+  /* גרסה 2: אסימון קריאה, בלי חשבון */
+  await q.query("insert into settings(key,value) values ('sim_token','Tok1234567890abcdefghijklmn') on conflict (key) do update set value=excluded.value");
+  const ups4=[];const r4=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",token:"Tok1234567890abcdefghijklmn",storage:mem(),onUpdate:x=>ups4.push(x)});
+  await wait(2500);
+  ok(ups4[0]&&ups4[0].source==="poll"&&ups4[0].data.robots.length===nProf,"reader token: gets profiles without a password ("+(ups4[0]&&ups4[0].data.robots.length)+")");
+  r4.stop();
+  const ups5=[];const r5=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",token:"WrongWrongWrongWrongWrong1",storage:mem(),onUpdate:x=>ups5.push(x)});
+  await wait(1500);ok(ups5.length===0,"reader token: wrong token gets nothing");r5.stop();
+  srv.kill();await wait(300);
   /* בלי שרת: זיכרון */
   const ups2=[];const r2=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",email:"sim@example.test",password:"pw-sim",storage,onUpdate:x=>ups2.push(x)});
   await wait(1500);
@@ -44,7 +53,11 @@ const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setIt
   const cc=x=>"A9662C:1:"+zlib.deflateRawSync(Buffer.from(JSON.stringify(x))).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   const cfg=await R.parseConnCode(" "+cc({url:"https://abc.supabase.co",key:"anon",email:"sim@example.test",pw:"pw-sim",event:"ILCMP"})+"\n");
   ok(cfg&&cfg.url==="https://abc.supabase.co"&&cfg.anonKey==="anon"&&cfg.email==="sim@example.test"&&cfg.password==="pw-sim"&&cfg.eventCode==="ILCMP","reader: connection code parsed (with spaces and Enter)");
-  ok(await R.parseConnCode(cc({url:"javascript:alert(1)",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://localhost:1@evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode("A9662C:1:@@@")===null&&await R.parseConnCode("A9662C:2:AAAA")===null,"reader: bad connection code returns null");
+  const cc2=x=>"A9662C:2:"+zlib.deflateRawSync(Buffer.from(JSON.stringify(x))).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  const cfg2=await R.parseConnCode(cc2({url:"https://abc.supabase.co",key:"anon",token:"Tok1234567890abcdefghijklmn",event:"ILCMP"}));
+  ok(cfg2&&cfg2.token==="Tok1234567890abcdefghijklmn"&&!cfg2.password&&cfg2.eventCode==="ILCMP","reader: connection code v2 (token) parsed");
+  ok(await R.parseConnCode(cc2({url:"https://abc.supabase.co",key:"anon",token:"short"}))===null,"reader: v2 with a bad token refused");
+  ok(await R.parseConnCode(cc({url:"javascript:alert(1)",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://localhost:1@evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode(cc({url:"http://evil.com",key:"a",email:"b",pw:"c"}))===null&&await R.parseConnCode("A9662C:1:@@@")===null&&await R.parseConnCode("A9662C:3:AAAA")===null,"reader: bad connection code returns null");
   /* זיכרון של תחרות אחרת לא נטען */
   const ups3=[];const r3=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",email:"x",password:"y",storage,eventCode:"OTHER",onUpdate:x=>ups3.push(x)});
   await wait(800);ok(ups3.length===0,"reader: cache of another event not used");r3.stop();

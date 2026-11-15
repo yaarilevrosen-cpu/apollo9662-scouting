@@ -418,6 +418,10 @@ async function publishProfiles(pkg,prev){
   return {changed:rows.length,map:next};
 }
 async function setJoinCode(code){await ready;const {error}=await sb().rpc("set_join_code",{code});if(error)throw fail(error);}
+/* אסימון קריאה לסימולטור: אקראי, נשמר בענן; מחזיר את מה שנכנס לקוד החיבור (בלי סיסמה) */
+async function newSimToken(){await ready;if(state.role!=="manager")throw fail("permission_denied");
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";const r=new Uint32Array(32);crypto.getRandomValues(r);const tok=[...r].map(x=>A[x%A.length]).join("");
+  const {error}=await sb().rpc("set_sim_token",{tok});if(error)throw fail(error);return {url:CFG.url,key:CFG.anonKey,token:tok};}
 /* יציאה: לא מוחקת רשומות שלא נשלחו. מוחקת את כל השאר מהטלפון (מכשיר משותף) */
 async function signOut(force){
   if(!force&&pendingCount())return "pending";
@@ -448,6 +452,6 @@ async function simConnInfo(email,pw){
   }finally{try{await tmp.auth.signOut({scope:"local"});}catch(_){}}
   return {url:CFG.url,key:CFG.anonKey};
 }
-window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,signOut,listScouts,removeScout,restoreScout,pendingCount,ready,_refreshAll:refreshAll};
+window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,newSimToken,signOut,listScouts,removeScout,restoreScout,pendingCount,ready,_refreshAll:refreshAll};
 window.claude={use:async k=>k==="db"?db:k==="user"?user:k==="downloads"?downloads:null};
 })();

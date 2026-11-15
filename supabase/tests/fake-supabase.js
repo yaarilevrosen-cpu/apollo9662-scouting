@@ -47,7 +47,7 @@ const server=http.createServer(async(req,res)=>{
     /* ── פונקציות ── */
     let m;
     if((m=/^\/rest\/v1\/rpc\/(\w+)$/.exec(u.pathname))){
-      const fn=m[1];if(!["doc_write","join_team","set_join_code","my_role","set_scout_role"].includes(fn))return send(res,404,{message:"no function"});
+      const fn=m[1];if(!["doc_write","join_team","set_join_code","my_role","set_scout_role","set_sim_token","sim_read"].includes(fn))return send(res,404,{message:"no function"});
       const keys=Object.keys(J||{});const r=await asUser(c,cl=>cl.query(`select public.${fn}(${keys.map((k,i)=>`${k} => $${i+1}`).join(",")}) as r`,keys.map(k=>typeof J[k]==="object"&&J[k]!==null?JSON.stringify(J[k]):J[k])));
       return send(res,200,r.rows[0].r);
     }

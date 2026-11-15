@@ -47,9 +47,22 @@ function create(opt){
     if(error){signedIn=false;throw error;}
     signedIn=true;
   }
+  /* גרסה 2 של קוד החיבור: אסימון קריאה במקום סיסמה. קריאה אחת לפונקציה sim_read, כל דקה (בלי ערוץ חי) */
+  async function fetchByToken(source){
+    const {data:r,error}=await client.rpc("sim_read",{tok:o.token,ev:o.eventCode||""});
+    if(error)throw error;
+    if(!r||!r.meta){status(source,{error:"no_data"});return;}
+    heartbeatAt=Date.parse(r.meta.updated_at)||heartbeatAt;
+    const m=r.meta.data;const byTeam={};for(const x of r.profiles||[])byTeam[x.team]=x.data;
+    const pkg={format:"apollo9662-scouting/event",version:m.version||1,generated_at:m.generated_at,event:m.event,event_code:m.event_code||"",current_match:m.current_match??null,units:m.units,schedule:m.schedule||{},
+      robots:(m.teams||Object.keys(byTeam).map(Number)).map(t=>byTeam[t]).filter(Boolean)};
+    const newest=Math.max(heartbeatAt,...(r.profiles||[]).map(x=>Date.parse(x.updated_at)||0));
+    emit(source,pkg,newest||Date.now());status(source);
+  }
   async function fetchAll(source){
     if(busy)return;busy=true;const my=++seq;
     try{
+      if(o.token){await fetchByToken(source);return;}
       if(!signedIn)await login();
       const [{data:meta,error:e1},{data:rows,error:e2}]=await Promise.all([
         client.from("sim_meta").select("data,updated_at").eq("event_code",o.eventCode).limit(1),
@@ -61,7 +74,7 @@ function create(opt){
       if(!meta.length){status(source,{error:"no_data"});return;}
       heartbeatAt=Date.parse(meta[0].updated_at)||heartbeatAt;
       const m=meta[0].data;const byTeam={};for(const r of rows)byTeam[r.team]=r.data;
-      const pkg={format:"apollo9662-scouting/event",version:m.version||1,generated_at:m.generated_at,event:m.event,event_code:m.event_code||"",units:m.units,schedule:m.schedule||{},
+      const pkg={format:"apollo9662-scouting/event",version:m.version||1,generated_at:m.generated_at,event:m.event,event_code:m.event_code||"",current_match:m.current_match??null,units:m.units,schedule:m.schedule||{},
         robots:(m.teams||Object.keys(byTeam).map(Number)).map(t=>byTeam[t]).filter(Boolean)};
       const newest=Math.max(heartbeatAt,...rows.map(r=>Date.parse(r.updated_at)||0));
       emit(source,pkg,newest||Date.now());status(source);
@@ -78,7 +91,7 @@ function create(opt){
     if(!SB||!o.url||!o.anonKey){status("offline",{error:"not_configured"});return;}
     try{
       client=SB.createClient(o.url,o.anonKey,{auth:{persistSession:false,autoRefreshToken:true},global:{fetch:tfetch}});
-      chan=client.channel("sim-"+Math.random().toString(36).slice(2,8))
+      if(!o.token)chan=client.channel("sim-"+Math.random().toString(36).slice(2,8))
         .on("postgres_changes",{event:"*",schema:"public",table:"sim_profiles"},()=>debounced())
         .on("postgres_changes",{event:"*",schema:"public",table:"sim_meta"},()=>debounced())
         .subscribe(st=>{live=st==="SUBSCRIBED";if(live){status("live");tick(true);}else if(mode==="live")status("poll");});
@@ -122,14 +135,17 @@ async function unpack(b64){
 async function parseConnCode(str){
   try{
     const s=String(str||"").trim();if(s.length>4000)return null;
-    const m=/^A9662C:1:([A-Za-z0-9_-]+)$/.exec(s);if(!m)return null;
-    const c=JSON.parse(await unpack(m[1]));
-    if(!c||typeof c.url!=="string"||typeof c.key!=="string"||typeof c.email!=="string"||typeof c.pw!=="string")return null;
+    const m=/^A9662C:([12]):([A-Za-z0-9_-]+)$/.exec(s);if(!m)return null;
+    const c=JSON.parse(await unpack(m[2]));
+    if(!c||typeof c.url!=="string"||typeof c.key!=="string")return null;
+    const v2=m[1]==="2";
+    if(v2?!(typeof c.token==="string"&&/^[A-Za-z0-9]{24,64}$/.test(c.token)):(typeof c.email!=="string"||typeof c.pw!=="string"))return null;
     /* הסיסמה נשלחת לכתובת הזאת: רק https, או שרת מקומי לבדיקות. בלי שם משתמש בכתובת (http://localhost@evil) */
     let u;try{u=new URL(c.url);}catch(e){return null;}
     const local=u.hostname==="localhost"||u.hostname==="127.0.0.1";
     if(u.username||u.password||!(u.protocol==="https:"||(u.protocol==="http:"&&local)))return null;
-    return {url:u.origin,anonKey:c.key,email:c.email,password:c.pw,eventCode:typeof c.event==="string"?c.event:""};
+    const ev=typeof c.event==="string"?c.event:"";
+    return v2?{url:u.origin,anonKey:c.key,token:c.token,eventCode:ev}:{url:u.origin,anonKey:c.key,email:c.email,password:c.pw,eventCode:ev};
   }catch(e){return null;}
 }
 const api={create,parseConnCode};
