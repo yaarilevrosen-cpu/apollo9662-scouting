@@ -481,17 +481,17 @@ svg .he{font-family:var(--f-body)}
           <div class="field"><span class="lbl">&nbsp;</span><button type="button" class="btn" id="noShow" aria-pressed="false">לא הגיע למאץ׳</button></div>
         </div>
         <div class="field"><span class="lbl">עמדת פתיחה</span>
-          <div class="seg fseg" data-fk="aStart"><button type="button" data-v="A" aria-pressed="false">A</button><button type="button" data-v="B" aria-pressed="false">B</button><button type="button" data-v="C" aria-pressed="false">C</button></div></div>
+          <div class="seg fseg" data-fk="aStart"><button type="button" data-v="A" aria-pressed="false">ליד אזור הטעינה</button><button type="button" data-v="B" aria-pressed="false">באמצע</button><button type="button" data-v="C" aria-pressed="false">רחוק מאזור הטעינה</button></div></div>
         <datalist id="teamList"></datalist>
       </div>
 
       <div class="block" data-phase="auto">
         <h3>אוטונומי <span class="now-tag" hidden>עכשיו</span><span class="pts" id="ptsA">0</span></h3>
         <div class="ctrs">
-          <button type="button" class="tog" data-k="aLeave" aria-pressed="false">יצא מהקיר <span class="sw"></span></button>
-          <button type="button" class="tog" data-k="aPark" aria-pressed="false">חנה באזור הטעינה בסוף האוטונומי <span class="sw"></span></button>
+          <button type="button" class="tog" data-k="aLeave" aria-pressed="false">LEAVE <span class="sw"></span></button>
+          <button type="button" class="tog" data-k="aPark" aria-pressed="false">חניה <span class="sw"></span></button>
           <div class="ctr" data-k="aHit" data-fm="2"><span class="lbl">כדורים שלו שנכנסו לתא</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים באוטונומי">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדורים באוטונומי">+</button></div></div>
-          <div class="ctr" data-k="aFlip" data-fm="2"><span class="lbl">הכוורת של הברית שלו התהפכה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים באוטונומי">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוכים באוטונומי">+</button></div><span class="pv">כל היפוך של הברית</span></div>
+          <div class="ctr" data-k="aFlip" data-fm="2"><span class="lbl">כמה פעמים הכוורת של הברית שלו התהפכה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים באוטונומי">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוכים באוטונומי">+</button></div><span class="pv">כל היפוך של הברית</span></div>
           <div class="ctr" data-k="aTips" data-fm="1"><span class="lbl">היפוכים שהוא גרם</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים באוטונומי">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוך באוטונומי">+</button></div><span class="pv">20 לכל אחד</span></div>
         </div>
       </div>
@@ -500,7 +500,7 @@ svg .he{font-family:var(--f-body)}
         <h3>שליטה ידנית <span class="now-tag" hidden>עכשיו</span><span class="pts" id="ptsT">0</span></h3>
         <p class="how" id="howT">היפוך נספר לרובוט שלך רק אם הכדור שלו הפך את הכוורת.</p>
         <div class="ctrs">
-          <div class="ctr" data-k="tFlip" data-fm="2"><span class="lbl">הכוורת של הברית שלו התהפכה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוכים">+</button></div><span class="pv" id="flipHint">כל היפוך של הברית</span></div>
+          <div class="ctr" data-k="tFlip" data-fm="2"><span class="lbl">כמה פעמים הכוורת של הברית שלו התהפכה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוכים">+</button></div><span class="pv" id="flipHint">כל היפוך של הברית</span></div>
           <div class="ctr" data-k="tTips" data-fm="1"><span class="lbl">היפוכים שהוא גרם</span><div class="w"><button type="button" data-d="-1" aria-label="פחות היפוכים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד היפוך">+</button></div><span class="pv" id="cycleHint">20 לכל אחד</span></div>
           <div class="ctr" data-k="shotsHit"><span class="lbl">כדורים שלו שנכנסו לתא</span><div class="w"><button type="button" data-d="-1" aria-label="פחות פגיעות">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד פגיעה">+</button></div><span class="pv" id="hitHint">היפוך נספר גם כאן</span></div>
           <div class="ctr" data-k="shotsMiss"><span class="lbl">יריות שהחטיאו</span><div class="w"><button type="button" data-d="-1" aria-label="פחות החטאות">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד החטאה">+</button></div><span class="pv" id="accHint">דיוק —</span></div>
@@ -515,13 +515,14 @@ svg .he{font-family:var(--f-body)}
         <div class="ctrs">
           <div class="ctr" data-k="flower" data-fm="1"><span class="lbl">כדורים שלו בפרח שלנו</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בפרח">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בפרח">+</button></div><span class="pv">2 לכל אחד</span></div>
           <div class="ctr" data-k="fBalls" data-fm="2"><span class="lbl">פרחים שהנקטר שלו למעלה: כמה כדורים יש בהם בסך הכול</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בפרחים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדורים בפרחים">+</button></div><span class="pv">כל הכדורים באותם פרחים, גם של אחרים</span></div>
+          <div class="ctr" data-k="fNect" data-fm="2"><span class="lbl">נקטר שהוא הניח בפרחים</span><div class="w"><button type="button" data-d="-1" aria-label="פחות נקטר בפרחים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד נקטר בפרחים">+</button></div></div>
           <div class="ctr" data-k="bonus"><span class="lbl">נקטר תחתון שלו</span><div class="w"><button type="button" data-d="-1" aria-label="פחות בונוס">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד בונוס">+</button></div><span class="pv">5 לכל פרח</span></div>
           <div class="ctr" data-k="garden"><span class="lbl">כדורים שלו בגינה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בגינה">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בגינה">+</button></div><span class="pv">1 לכל אחד</span></div>
           <div class="ctr" data-k="cell"><span class="lbl">כדורים שלו שנשארו בתא</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בתא">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בתא">+</button></div><span class="pv">2 לכל אחד</span></div>
           <button type="button" class="tog" data-k="tPark" aria-pressed="false">חנה באזור הטעינה בסוף המאץ׳ <span class="sw"></span></button>
         </div>
         <div class="row">
-          <div class="field"><span class="lbl">מאיפה ירה בעיקר</span><div class="seg fseg" data-fk="zone"><button type="button" data-v="near" aria-pressed="false">קרוב</button><button type="button" data-v="mid" aria-pressed="false">אמצע</button><button type="button" data-v="far" aria-pressed="false">רחוק</button></div></div>
+          <div class="field" hidden><span class="lbl">מאיפה ירה בעיקר</span><div class="seg fseg" data-fk="zone"><button type="button" data-v="near" aria-pressed="false">קרוב</button><button type="button" data-v="mid" aria-pressed="false">אמצע</button><button type="button" data-v="far" aria-pressed="false">רחוק</button></div></div>
           <div class="field"><span class="lbl">הוא חסם יריבים</span><div class="seg fseg" data-fk="defT"><button type="button" data-v="0" aria-pressed="true">לא</button><button type="button" data-v="1" aria-pressed="false">קצת</button><button type="button" data-v="2" aria-pressed="false">רוב המאץ׳</button></div></div>
         </div>
       </div>
@@ -535,7 +536,7 @@ svg .he{font-family:var(--f-body)}
           <button type="button" class="tog badtog" data-k="lostConn" aria-pressed="false">איבד תקשורת לזמן מה <span class="sw"></span></button>
         </div>
         <div class="row">
-          <div class="field" data-fm="1"><span class="lbl">כרטיס</span><div class="seg" id="fCard"><button type="button" data-v="none" aria-pressed="true">אין</button><button type="button" class="y" data-v="yellow" aria-pressed="false">צהוב</button><button type="button" class="x" data-v="red" aria-pressed="false">אדום</button></div></div>
+          <div class="field"><span class="lbl">כרטיס</span><div class="seg" id="fCard"><button type="button" data-v="none" aria-pressed="true">אין</button><button type="button" class="y" data-v="yellow" aria-pressed="false">צהוב</button><button type="button" class="x" data-v="red" aria-pressed="false">אדום</button></div></div>
           <div class="field"><span class="lbl">איכות נהיגה</span><div class="stars" id="fDrive"></div></div>
         </div>
         <div class="field"><span class="lbl">תגיות (לחיצה מסמנת)</span><div class="qchips" id="qchips"></div></div>
@@ -3006,7 +3007,7 @@ const BOOLK=["aLeave","aPark","tPark","broke","lostConn","defended","wasDef","no
 /* תגיות בלחיצה אחת (גם לסימולטור): מה שקשה למדוד במספרים */
 const TAGS=[["pin","מצמיד"],["block","חוסם נתיב"],["bumpAlly","מתנגש בשותף"],["latePark","חונה ברגע האחרון"],["fastCycle","מחזור מהיר"],["slowIntake","איסוף איטי"],["dropsBalls","מפיל כדורים"],["stuck","נתקע על כדורים"],["passive","כמעט לא עשה כלום"]];
 /* "מחזור מהיר" ו"כמעט לא עשה כלום" כבר נמדדים (זמן מחזור, ניקוד) – לא שואלים עליהם. נשארים בייצוא בשביל רשומות ישנות */
-const TAGS_OLD=new Set(["fastCycle","passive"]);const TAGS_FORM=TAGS.filter(x=>!TAGS_OLD.has(x[0]));
+const TAGS_OLD=new Set(); /* גרסה 18: כל התגיות חזרו לפי יערי */const TAGS_FORM=TAGS.filter(x=>!TAGS_OLD.has(x[0]));
 const TAGK=new Set(TAGS.map(x=>x[0]));
 /* גרסה 13: fm=2 – היפוכים של הברית (aFlip, tFlip) ופגיעות של הרובוט (aHit, shotsHit). הקרדיט לרובוט מחושב לפי חלקו בפגיעות.
    רשומה בלי fm היא מהמבנה הקודם: aTips/tTips הם היפוכים שהרובוט עצמו גרם */
@@ -3492,7 +3493,7 @@ function compat(team){
   const set=(p,k,a,mk)=>new Set([...(p?.known.has(k)?p[k]:[]),...(a?.[mk]?[a[mk]]:[])]);
   const out=[];
   const su=set(us,"starts",ua,"aStartMode"),st=set(th,"starts",ta,"aStartMode");
-  if(su.size&&st.size){const both=[...su].filter(x=>st.has(x));if(both.length&&(su.size===1||st.size===1))out.push(["bad","אותה עמדת פתיחה ("+both.join("/")+")"]);}
+  if(su.size&&st.size){const both=[...su].filter(x=>st.has(x));if(both.length&&(su.size===1||st.size===1))out.push(["bad","אותה עמדת פתיחה ("+both.map(x=>START_NAME[x]||x).join(" / ")+")"]);}
   const zu=set(us,"zones",ua,"zoneMode"),zt=set(th,"zones",ta,"zoneMode");
   if(zu.size===1&&zt.size===1&&[...zu][0]===[...zt][0])out.push(["warn","יורות מאותו אזור"]);
   const bu=us?.known.has("balls")?us.balls:null,bt=th?.known.has("balls")?th.balls:null;
@@ -3513,7 +3514,7 @@ function matchSheetHTML(m){
   const card=(team,role)=>{const a=M.get(team);const pm=pitMerged(G.get(team));const K=q=>pm?.known.has(q);
     /* את עצמנו לא סוקרים בפיט: בלי סימן שאלה, שלא ייראה כמו מידע חסר */
     const unk=team===US?"—":"?";
-    const starts=[...new Set([...(K("starts")?pm.starts:[]),...(a?.aStartMode?[a.aStartMode]:[])])].join("/")||unk;
+    const starts=[...new Set([...(K("starts")?pm.starts:[]),...(a?.aStartMode?[a.aStartMode]:[])])].map(x=>START_NAME[x]||x).join(" / ")||unk;
     const balls=K("balls")?pitTxt("balls",pm.balls):unk;
     const zones=K("zones")?pitTxt("zones",pm.zones):(a?.zoneMode?({near:"קרוב",mid:"אמצע",far:"רחוק"})[a.zoneMode]:unk);
     const tags=a?Object.entries(a.tagShare||{}).filter(([,v])=>v>=.4).map(([k2])=>TAGS.find(x=>x[0]===k2)?.[1]).filter(Boolean):[];
@@ -3767,6 +3768,10 @@ function renderTags(){$("qchips").innerHTML=TAGS.filter(x=>!TAGS_OLD.has(x[0])||
 function renderForm(){
   /* מבנה חדש (fm=2) או רשומה ישנה בעריכה: מציגים רק את המונים של אותו מבנה */
   const v2=F.fm===2;document.querySelectorAll("#form [data-fm]").forEach(el=>{el.hidden=(el.dataset.fm==="2")!==v2;});
+  /* "לא הגיע": כל שאר השאלות לא רלוונטיות */
+  document.querySelectorAll("#form .block[data-phase]").forEach(el=>{el.hidden=!!F.noShow;});
+  {const lb=$("fNotes").closest(".block");lb.querySelectorAll(":scope > .ctrs, :scope > .row, :scope > h3").forEach(el=>{el.hidden=!!F.noShow;});$("qchips").closest(".field").hidden=!!F.noShow;}
+  {const f=document.querySelector('#form .fseg[data-fk="aStart"]')?.closest(".field");if(f)f.hidden=!!F.noShow;}
   $("howT").textContent=v2?"״פגע״ על כל כדור שלו שנכנס לתא. ״התהפכה״ בכל פעם שהכוורת של הברית שלו מתהפכת – לא משנה של מי הכדור.":"היפוך נספר לרובוט שלך רק אם הכדור שלו הפך את הכוורת.";
   $("howE").textContent=v2?"בפרח שהנקטר העליון בו של הרובוט שלך – סופרים את כל הכדורים שבו.":"סופרים רק כדורים שהרובוט שלך הכניס, לא את כל מה שיש בפרח.";
   $("hitHint").textContent=v2?"החלק שלו בהיפוכים מחושב מזה":"היפוך נספר גם כאן";
@@ -3775,7 +3780,6 @@ function renderForm(){
   document.querySelectorAll("#form .tog").forEach(t=>t.setAttribute("aria-pressed",!!F[t.dataset.k]));
   document.querySelectorAll("#fAlly button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===F.ally));
   document.querySelectorAll("#fCard button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===F.card));
-  {const bl=F.ally==="blue";document.querySelectorAll('.fseg[data-fk="aStart"] button').forEach((b,i)=>b.textContent=(bl?"DEF":"ABC")[i]);}
   document.querySelectorAll("#form .fseg").forEach(g=>g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(F[g.dataset.fk])===b.dataset.v)));
   {const n=(F.shotsHit||0)+(F.shotsMiss||0);$("accHint").textContent=n?"פגע ב־"+(F.shotsHit||0)+" מתוך "+n:"עוד לא נספרו יריות";}
   const ae=document.activeElement?.dataset?.star;stars("fDrive","drive",1);if(ae)$("fDrive").querySelector(`[data-v="${F.drive||1}"]`)?.focus();
@@ -4883,7 +4887,9 @@ const PIT_ONE={drive:[["mecanum","מקנום"],["tank","טנק"],["other","אח�
   range:[["36","עד 3 רגל"],["72","עד 6 רגל"],["108","עד 9 רגל"],["144","כל הזירה"]],
   /* השאלה הכי חשובה בפיט: אילו כדורים הם יורים */
   balls:[["pollen","רק פולן"],["both","גם פולן וגם נקטר"],["nectar","רק נקטר"],["unk","לא יודעים"]]};
-const PIT_MANY={intake:[["flower","מהפרח"],["floor","מהרצפה"],["human","מהשחקן האנושי"]],zones:[["near","קרוב לכוורת"],["mid","באמצע"],["far","רחוק"]],starts:[["A","A"],["B","B"],["C","C"]]};
+const PIT_MANY={intake:[["flower","מהפרח"],["floor","מהרצפה"],["human","מהשחקן האנושי"]],zones:[["near","קרוב לכוורת"],["mid","באמצע"],["far","רחוק"]],starts:[["A","ליד אזור הטעינה"],["B","באמצע"],["C","רחוק מאזור הטעינה"]]};
+/* עמדות הפתיחה נשמרות כ־A/B/C (כך הסימולטור מכיר אותן), ומוצגות לפי מקום בזירה – זהה לשתי הבריתות */
+const START_NAME={A:"ליד אזור הטעינה",B:"באמצע",C:"רחוק מאזור הטעינה"};
 const PIT_BOOL=[["moving","אתם יורים תוך כדי נסיעה?"],["aim","הרובוט מכוון לבד, עם מצלמה?"],["aLeave","באוטונומי אתם יוצאים מהקיר?"],["aPark","אתם חונים בסוף האוטונומי?"],["tPark","אתם חונים בסוף המאץ׳?"],["late","אתם מכניסים נקטר לפרח בדקה האחרונה?"],["full","הרובוט בגודל המלא המותר?"],["lift","אתם מגיעים לפתח של הפרח למעלה?"],
   ["flipSide","אחרי שהכוורת מתהפכת, אתם יכולים לירות לתא בצד השני?"],["autoAdapt","אתם יכולים לשנות את האוטונומי לפי השותף?"]];
 const PIT_NUM={cap:4,aTips:6,aBalls:8,progs:5,tipsAll:20};
@@ -4899,9 +4905,19 @@ const PIT_SHORT={balls:"כדורים לירי",drive:"הנעה",speed:"מהיר�
 /* מה שאפשר לראות ברובוט בלי לשאול */
 const PIT_SEE=new Set(["drive","shooters","mount","side","full","lift"]);
 const PIT_KEYS=[...Object.keys(PIT_ONE),...Object.keys(PIT_MANY),...PIT_BOOL.map(x=>x[0]),...Object.keys(PIT_NUM)];
-const PIT_REQ=["drive","shooters","intake"];
+const PIT_REQ=["drive","shooters","intake"]; /* עד גרסה 17 */
+/* "חובה" לפי יערי (גרסה 18). שאלה שנעשתה לא רלוונטית (pitHide) לא נדרשת */
+const PIT_MUST=["drive","shooters","cap","aLeave","aPark","aBalls","aTips","autoAdapt","balls","mount","tPark","role"];
+const pitHas=(r,k)=>r.known?r.known.has(k):(r.set||[]).includes(k);
+/* שאלות שתלויות בתשובה אחרת: אם התשובה העליונה הופכת אותן ללא רלוונטיות – לא מציגים ולא שומרים */
+function pitHide(r){const h=new Set();if(!r)return h;
+  if(pitHas(r,"shooters")&&r.shooters==="0"){PIT_SHOOT.forEach(k=>h.add(k));h.add("aTips");}
+  if(pitHas(r,"aLeave")&&r.aLeave===false)h.add("aPark");
+  if(pitHas(r,"aBalls")&&+r.aBalls===0)h.add("aTips");
+  if(pitHas(r,"balls")&&r.balls==="pollen")h.add("late");
+  return h;}
 /* אילו כדורים – חובה, חוץ מרובוט בלי יורה */
-const pitReqFor=sh=>sh==="0"?PIT_REQ:[...PIT_REQ,"balls"];
+const pitReqFor=r=>{const h=pitHide(r);return PIT_MUST.filter(k=>!h.has(k));};
 const PIT_SHOOT=["balls","mount","shooter","range","zones","moving","aim","aBalls","tipsAll","flipSide"]; /* לא רלוונטי לרובוט בלי יורה */ /* בלי אלה הרשומה "חלקית" */
 const pitId=t=>(curEv()?curEv()+"_":"")+"p"+t;
 const pitPendKey=()=>"bbz-pitpending:"+(S.me||"anon");
@@ -4979,7 +4995,7 @@ function pitMerged(g){
 }
 function pitStatus(g){
   const done=(g||[]).filter(r=>!r.retry);
-  if(done.length){const m=pitMerged(g);const part=pitReqFor(m.shooters).some(k=>!m.known.has(k));
+  if(done.length){const m=pitMerged(g);const part=pitReqFor(m).some(k=>!m.known.has(k));
     if(part)return ["part","חלקי","warn"];
     return done.length>=2?["dup","נסקר פעמיים","warn"]:["ok","נסקר","good"];}
   if((g||[]).some(r=>r.retry))return ["retry","לנסות שוב","bad"];
@@ -4992,7 +5008,7 @@ function pitSummaryHTML(p){
   const K=k=>p.known.has(k);
   const rows=[...Object.keys(PIT_ONE),...Object.keys(PIT_MANY)].filter(K).map(k=>[PIT_SHORT[k],pitTxt(k,p[k])]).concat(Object.keys(PIT_NUM).filter(K).map(k=>[PIT_SHORT[k],String(p[k])]));
   const yes=PIT_BOOL.filter(([k])=>K(k)).map(([k])=>`<span class="chip ${p[k]?"good":""}">${p[k]?"":"לא "}${PIT_SHORT[k]}</span>`).join(" ");
-  const miss=pitReqFor(p.shooters).filter(k=>!K(k));
+  const miss=pitReqFor(p).filter(k=>!K(k));
   return `${photo}${miss.length?`<div class="chip warn" style="margin-bottom:8px">חסר: ${miss.map(k=>PIT_SHORT[k]).join(" · ")}</div>`:""}
     <div class="minis">${rows.map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v" style="font-size:15px">${esc(v)}</div></div>`).join("")}</div>
     <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${yes||'<span class="flat">אין סימונים</span>'}</div>
@@ -5007,7 +5023,7 @@ function pitOpen(team){
   pitArm=null;S.pitTeam=team;const mine=pitMine()[team];PF=mine?pitClean(mine):pitBlank();S.pitDirty=false;pitRetryArmed=false;
   renderPit();requestAnimationFrame(()=>$(isMgr()?"pitSummary":"pitForm")?.scrollIntoView({behavior:"smooth",block:"start"}));
 }
-const pitPartial=r=>!r.retry&&pitReqFor(r.shooters).some(k=>!r.set.includes(k));
+const pitPartial=r=>!r.retry&&pitReqFor(r).some(k=>!r.set.includes(k));
 const pitOpenOf=(r)=>!r||r.retry||pitPartial(r);
 function pitNext(team){const st=pitMine();const L=(pitAssignMap()[S.me]||[]).filter(t=>t!==team);return L.find(t=>!st[t])||L.find(t=>st[t]&&st[t].retry)||L.find(t=>st[t]&&pitPartial(st[t]));}
 function pitSave(retry){
@@ -5021,7 +5037,7 @@ function pitSave(retry){
   if(body.photo&&sizeOf({...S.myRaw})+sizeOf({...S.myPit,[id]:body})>200000){body.photo="";toast("המסמך שלך כמעט מלא – התמונה לא נשמרה, התשובות כן");}
   S.pitPending[id]=body;const stored=LS.set(pitPendKey(),S.pitPending);S.pitDirty=false;
   if(LS_OK&&!stored){S.storeFail=true;toast("הזיכרון בטלפון מלא – לא לסגור את הדף עד שהרשומה תישלח");S.pitTeam=null;PF=null;flush();renderPit();return;}
-  const part=!retry&&pitReqFor(body.shooters).some(k=>!body.set.includes(k));
+  const part=!retry&&pitReqFor(body).some(k=>!body.set.includes(k));
   const next=pitNext(team);
   const what=retry?"קבוצה "+team+" סומנה לנסות שוב":(part?"נשמר חלקי · ":"נשמר · ")+team+(navigator.onLine===false?" · יישלח כשתחזור הרשת":"");
   toast(next?what+" · עכשיו "+next:what);buzz(30);
@@ -5065,21 +5081,23 @@ function pitFormHTML(){
   const tog=k=>{const l=PIT_BOOL.find(x=>x[0]===k)[1];const st=PF.set.includes(k)?(PF[k]?"yes":"no"):"";
     return `<div class="field tri3"><span class="lbl">${l}${see(k)}</span><div class="seg">${[["yes","כן"],["no","לא"],["","לא ידוע"]].map(([v,t])=>`<button type="button" data-pb="${k}" data-v="${v}" aria-pressed="${st===v}">${t}</button>`).join("")}</div></div>`;};
   const noShooter=on("shooters","0");
+  /* תשובה שהופכת שאלות אחרות ללא רלוונטיות: הן נעלמות, והתשובה שלהן לא נשמרת */
+  const hid=pitHide(PF);PF.set=PF.set.filter(k=>!hid.has(k));const sh=k=>!hid.has(k);
   return `<div class="panel" id="pitForm">
     <div class="ph pit-head"><h2>קבוצה ${t}${teamName(t)?" · "+esc(teamName(t)):""}</h2><span class="hint">שיחה עם הקבוצה בפיט שלה. מה שלא שאלתם נשאר ריק</span><span class="right"><button type="button" class="btn" data-pclose="1">סגירה</button></span></div>
     <div class="pit-say"><b>פותחים ככה:</b> ״היי! אנחנו מאפולו 9662. יש לכם שתי דקות לכמה שאלות על הרובוט?״<br><span class="flat">אם הם עסוקים – ״הקבוצה לא בפיט?״ למטה, וחוזרים אחר כך.</span></div>
     <div class="block"><h3>על הרובוט</h3>
       <div class="pit-photo">${PF.photo?`<img src="${PF.photo}" alt="תמונה של הרובוט של ${t}"><button type="button" class="btn" data-pphotodel="1">להסיר את התמונה</button>`:""}<label class="btn" for="pitPhoto">📷 ${PF.photo?"תמונה אחרת":"תמונה של הרובוט"}</label><input type="file" id="pitPhoto" accept="image/*" capture="environment" hidden></div>
-      <div class="row">${one("drive")}${one("shooters")}</div>${many("intake")}</div>
-    <!-- גרסה 16–17: הוסרו מהירות, טווח, מספר תוכניות, היפוכים בכל המאץ׳ וירי לצד השני. הרשומות הישנות נשמרות -->
-    <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}<div class="ctrs">${tog("aLeave")}${noShooter?"":num("aBalls")}${num("aTips")}${tog("aPark")}${tog("autoAdapt")}</div></div>
+      <div class="row">${one("drive")}${one("shooters")}</div>${many("intake")}<div class="ctrs">${num("cap")}</div></div>
+    <!-- גרסה 18, לפי יערי: הוסרו מהירות, טווח, היפוכים בכל המאץ׳ וירי לצד השני. הרשומות הישנות נשמרות -->
+    <div class="block"><h3>אוטונומי</h3>${many("starts")}<div class="ctrs">${tog("aLeave")}${sh("aPark")?tog("aPark"):""}${sh("aBalls")?num("aBalls"):""}${sh("aTips")?num("aTips"):""}${tog("autoAdapt")}</div></div>
     ${noShooter?"":`<div class="block"><h3>ירי</h3><div class="pit-key"><span class="chip warn">⭐ הכי חשוב</span>${one("balls")}</div>
       ${many("zones")}<div class="row">${one("mount")}</div></div>`}
-    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("tPark")}${tog("late")}${tog("lift")}</div></div>
+    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("tPark")}${sh("late")?tog("late"):""}${tog("lift")}</div></div>
     <div class="block"><h3>הקבוצה</h3><div class="row">${one("role")}</div>
       <div class="field"><label for="pitBreaks">״מה הכי נשבר, נתקע או עוד לא עובד לכם?״</label><input class="inp" id="pitBreaks" maxlength="80" style="width:100%" value="${esc(PF.breaks||"")}"></div></div>
     <details class="block" id="pitMore" ${S.pitMore?"open":""}><summary><b>עוד שאלות</b> <span class="flat">(אם יש להם עוד זמן)</span></summary>
-      <div class="row">${one("side")}</div><div class="ctrs">${num("cap")}</div>
+      <div class="row">${one("side")}</div><div class="ctrs">${num("progs")}</div>
       ${noShooter?"":`<div class="ctrs">${tog("moving")}${tog("aim")}</div>`}
     </details>
     <div class="block"><div class="field"><label for="pitNotes">הערות <span class="flat">(אפשר לשאול: ״במה אתם הכי גאים ברובוט?״)</span></label><textarea class="inp" id="pitNotes" maxlength="400">${esc(PF.notes)}</textarea></div></div>

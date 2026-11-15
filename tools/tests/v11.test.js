@@ -89,7 +89,7 @@ const row=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-1000,aLeave:true,shotsHi
   ok(!(await p.$('[data-pn="aBalls"]')),'pit: no auto-balls question without a shooter');
   await p.click('[data-p1="shooters"][data-v="1"]');await p.click('[data-p1="balls"][data-v="unk"]');
   await p.click('[data-psave]');await p.waitForTimeout(300);
-  ok((await p.textContent('#toast')).startsWith('נשמר ·'),'pit: "don\'t know" counts as answered');
+  ok(await T(p,()=>{const r=window.__STORE["entries/s3"]?.pit?.p90001||Object.values(S.pitPending)[0];return r&&r.set.includes("balls")&&!pitReqFor(r).filter(k=>!r.set.includes(k)).includes("balls");}),'pit: "don\'t know" counts as answered');
   ok(await T(p,()=>declaredOf(90001).shoot_balls===null),'pit: "don\'t know" exported as null');
   ok(p.errs.length===0,'pit: no JS errors '+p.errs.join('|'));
 

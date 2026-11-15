@@ -21,12 +21,12 @@ async function page(browser,seed,vp){
   await s.click('.fseg[data-fk="aStart"] [data-v="B"]');
   for(let i=0;i<3;i++)await s.click('.ctr[data-k="shotsHit"] .plus');
   await s.click('.ctr[data-k="shotsMiss"] .plus');
-  await s.click('.fseg[data-fk="zone"] [data-v="far"]');
+  ok(await s.isHidden('.fseg[data-fk="zone"]'),'stage2: shooting zone not asked in the match form (v18)');
   await s.click('.fseg[data-fk="defT"] [data-v="1"]');
   ok((await s.textContent('#accHint')).includes('פגע ב־3 מתוך 4'),'stage2: accuracy hint');
   await s.click('#formSave');await s.waitForTimeout(400);
   const r=await s.evaluate(()=>window.__STORE["entries/s1"].rows["m1-t90001"]);
-  ok(r&&r.aStart==="B"&&r.shotsHit===3&&r.shotsMiss===1&&r.zone==="far"&&r.defT===1&&r.defended===false,'stage2: fields saved '+JSON.stringify(r&&{a:r.aStart,h:r.shotsHit,m:r.shotsMiss,z:r.zone,d:r.defT}));
+  ok(r&&r.aStart==="B"&&r.shotsHit===3&&r.shotsMiss===1&&!r.zone&&r.defT===1&&r.defended===false,'stage2: fields saved '+JSON.stringify(r&&{a:r.aStart,h:r.shotsHit,m:r.shotsMiss,z:r.zone,d:r.defT}));
   ok(s.errs.length===0,'scout no errors '+s.errs.join('|'));
   // manager with legacy + new rows + pit
   const now=Date.now();

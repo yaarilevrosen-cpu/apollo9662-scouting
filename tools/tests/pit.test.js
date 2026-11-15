@@ -33,7 +33,7 @@ async function page(browser,seed,vp){
   ok(await s.isVisible('.pit-key [data-p1="balls"][data-v="both"]'),'scout: pollen/nectar question shown, marked most important');
   await s.click('[data-p1="balls"][data-v="both"]');
   await s.click('#pitMore summary');await s.click('[data-p1="side"][data-v="front"]');
-  ok(!(await s.$('[data-p1="speed"]'))&&!(await s.$('[data-p1="range"]'))&&!(await s.$('[data-pn="progs"]'))&&!(await s.$('[data-pn="tipsAll"]'))&&!(await s.$('[data-pb="flipSide"]')),'scout: removed questions are gone (v16)');
+  ok(!(await s.$('[data-p1="speed"]'))&&!(await s.$('[data-p1="range"]'))&&!(await s.$('[data-pn="tipsAll"]'))&&!(await s.$('[data-pb="flipSide"]')),'scout: removed questions are gone (v16)');
   ok(await s.$('[data-pb="aLeave"]')&&await s.$('[data-pb="aPark"]')&&await s.$('[data-pn="aTips"]')&&await s.$('[data-pb="autoAdapt"]')&&await s.$('[data-pb="tPark"]')&&await s.$('[data-p1="role"]'),'scout: questions that help us are back (v17)');
   await s.click('[data-pm="intake"][data-v="flower"]');await s.click('[data-pm="intake"][data-v="human"]');
   await s.click('[data-pn="cap"] [data-pd="1"]');await s.click('[data-pn="cap"] [data-pd="1"]');
@@ -70,7 +70,7 @@ async function page(browser,seed,vp){
   const rows=await m.locator('#v-pit tr[data-popen]').count();
   ok(rows===7,'manager: coverage lists all schedule teams except us ('+rows+')');
   const chip=async t=>m.textContent(`#v-pit tr[data-popen="${t}"] .chip`);
-  ok((await chip(90001))==='נסקר'&&(await chip(90002))==='לנסות שוב'&&(await chip(90004))==='חלקי'&&(await chip(90005))==='חסר','manager: statuses correct');
+  ok((await chip(90001))==='חלקי'&&(await chip(90002))==='לנסות שוב'&&(await chip(90004))==='חלקי'&&(await chip(90005))==='חסר','manager: statuses correct');
   await m.screenshot({path:out+'/mgr-coverage.png',fullPage:true});
   await m.click('[data-pauto]');await m.waitForTimeout(300);
   const pa=await m.evaluate(()=>window.__STORE["control/main"].pitAssign);

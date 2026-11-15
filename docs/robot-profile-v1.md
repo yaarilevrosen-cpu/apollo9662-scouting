@@ -57,7 +57,7 @@
 | `shoots_other_side_after_tip` | כן או לא – יורים לתא בצד השני אחרי שהכוורת מתהפכת (חדש ב־15.11.2026) |
 | `auto_adaptable` | כן או לא – יכולים לשנות את האוטונומי לפי השותף (חדש ב־15.11.2026) |
 
-**מגרסה 16–17 של האפליקציה (15.11.2026) לא שואלים בפיט על:** `speed`, `max_range_in`, `auto_programs`, `tips_per_match`, `shoots_other_side_after_tip` (וגם לא על `shooter_wheels`, `full_size` מגרסה 14). המפתחות נשארים ונשלחים כרגיל: ערך מרשומה ישנה אם יש, ואחרת `null`. במקומם יש מדידות מהמאצ׳ים: `tips_per_match`, `cycle_s`, `drive_rating`. `capacity` ו־`intake_side` עדיין נשאלים, אבל רק ב"עוד שאלות", ולכן יהיו `null` לעתים קרובות יותר.
+**מגרסה 18 של האפליקציה (15.11.2026) לא שואלים בפיט על:** `speed`, `max_range_in`, `tips_per_match`, `shoots_other_side_after_tip` (וגם לא על `shooter_wheels`, `full_size` מגרסה 14). המפתחות נשארים ונשלחים כרגיל: ערך מרשומה ישנה אם יש, ואחרת `null`. במקומם יש מדידות מהמאצ׳ים: `tips_per_match`, `cycle_s`, `drive_rating`. `intake_side` ו־`auto_programs` נשאלים רק ב"עוד שאלות". שאלות תלויות לא נשאלות כשהן לא רלוונטיות (ואז `null`): `auto_park` כש־`auto_leave` הוא false, `auto_tips` כש־`auto_balls` הוא 0 או כשאין יורה, `late_nectar` כש־`shoot_balls` הוא `pollen`. בטופס המאץ׳ לא שואלים יותר על אזור הירי, ולכן `measured.main_shoot_zone` יהיה `null` ברשומות חדשות (`declared.shoot_zones` נשאר).
 
 
 ### `measured` (מהמאצ׳ים)
@@ -100,7 +100,7 @@
 | `defended_share` | חלק המאצ׳ים שבהם יריב חסם אותו |
 | `points_when_defended`, `points_when_free` | ממוצע נקודות כשחסמו אותו, וכשלא – בשביל "חלש מול הגנה" |
 | `points_sd`, `points_p25` | פיזור הנקודות בין מאצ׳ים, והרבעון התחתון ("יום רע") |
-| `tags` | אובייקט: לכל תגית, חלק המאצ׳ים שבהם סומנה (`{value, confidence, n}`). התגיות: `pin` מצמיד, `block` חוסם נתיב, `bumpAlly` מתנגש בשותף, `latePark` חונה ברגע האחרון, `fastCycle` מחזור מהיר, `slowIntake` איסוף איטי, `dropsBalls` מפיל כדורים, `stuck` נתקע על כדורים, `passive` כמעט לא עשה כלום. מגרסה 16 לא מסמנים יותר את `fastCycle` ואת `passive` (יש זמן מחזור וניקוד), והם לא נשלחים: מפתח שחסר = לא נמדד |
+| `tags` | אובייקט: לכל תגית, חלק המאצ׳ים שבהם סומנה (`{value, confidence, n}`). התגיות: `pin` מצמיד, `block` חוסם נתיב, `bumpAlly` מתנגש בשותף, `latePark` חונה ברגע האחרון, `fastCycle` מחזור מהיר, `slowIntake` איסוף איטי, `dropsBalls` מפיל כדורים, `stuck` נתקע על כדורים, `passive` כמעט לא עשה כלום. (בגרסה 16 שתי התגיות האחרונות הוסרו, ובגרסה 18 חזרו – כל התשע נשלחות) |
 
 ## מה עוד אין בגרסה 1
 

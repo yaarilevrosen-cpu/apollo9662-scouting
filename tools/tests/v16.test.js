@@ -28,10 +28,12 @@ const prof=n=>({nick:n,color:1,motto:"",joined:Date.now()});
   const sc=await page(browser,{me:"s1",owner:false,docs:{"control/main":{cur:1,ev:"",sched,assign:{s1:"r1"}},"entries/s1":{rows:{},ts:1,profile:prof("נועה")}}});
   await sc.click('[data-mode="match"]');await sc.waitForTimeout(150);
   await sc.click('[data-startm="1"]');await sc.waitForTimeout(200);
-  ok(!(await sc.$('[data-k="fNect"]')),'match form: "nectar placed in flowers" removed');
-  ok(await sc.isHidden('#fCard'),'match form: card hidden (new form)');
+  ok(!(await sc.isHidden('[data-k="fNect"]'))&&!(await sc.isHidden('#fCard')),'match form: nectar in flowers and card are back (v18)');
+  ok(await sc.isHidden('.fseg[data-fk="zone"]'),'match form: shooting zone removed (v18)');
+  ok((await sc.textContent('[data-k="aLeave"]')).includes('LEAVE')&&(await sc.textContent('[data-k="aPark"]')).trim().startsWith('חניה'),'match form: auto labels LEAVE and parking');
+  ok((await sc.textContent('.fseg[data-fk="aStart"]')).includes('ליד אזור הטעינה'),'match form: start positions by place on the field');
   ok(await sc.isHidden('#fAllyF'),'match form: alliance hidden when the schedule knows it');
-  ok((await sc.$$('#qchips button')).length===7&&!(await sc.$('[data-tag="fastCycle"]'))&&!(await sc.$('[data-tag="passive"]')),'match form: 7 tags (fast cycle and passive removed)');
+  ok((await sc.$$('#qchips button')).length===9,'match form: all 9 tags (v18)');
   await sc.click('[data-k="shotsHit"] .plus');await sc.click('[data-k="shotsHit"] .plus');await sc.click('[data-k="tFlip"] .plus');await sc.click('[data-k="tFlip"] .plus');await sc.waitForTimeout(100);
   ok((await sc.textContent('#ptsT'))==='20 נק׳','match form: live teleop points count hits and flips ('+(await sc.textContent('#ptsT'))+')');
   // שעון: "הידני התחיל" באוטונומי צריך לחיצה שנייה

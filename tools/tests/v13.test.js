@@ -36,7 +36,7 @@ const R=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-5000,fm:2,sv:true,...x});
   ok(await T(m,()=>{S.control=readControl({...S.control,day:{otips:{1:[5,1]}}});return Math.abs(allRows().find(x=>x.match===1&&x.team===9662).tTips-3)<1e-9;}),'credit: official alliance tips replace the scouted teleop count');
   const me=await T(m,()=>measuredOf(allStats().A.find(a=>a.team===9662)));
   ok(me.volley_cycle_s&&me.volley_cycle_s.value===20&&me.balls_per_volley.value===3,'export: volley cycle and balls per volley '+JSON.stringify([me.volley_cycle_s,me.balls_per_volley]));
-  ok(me.nectar_hive.value===1&&me.flower_balls.value===6&&me.tags.pin.value===1&&!("fastCycle" in me.tags),'export: nectar, flower and tags (removed tags not sent)');
+  ok(me.nectar_hive.value===1&&me.flower_balls.value===6&&me.tags.pin.value===1&&me.tags.fastCycle.value===1,'export: nectar, flower and tags');
   ok(me.minor_fouls&&me.breakdown_share&&me.disconnect_share&&me.points_sd===null,'export: fouls, breakdowns, disconnects');
   // התאמה ודף מאץ׳
   ok(await T(m,()=>compat(90001).some(x=>x[1].includes("אותה עמדת פתיחה"))&&compat(90001).some(x=>x[1]==="משלימה נקטר")),'compat: same start and nectar complement');

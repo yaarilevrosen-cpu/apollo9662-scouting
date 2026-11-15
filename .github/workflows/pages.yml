@@ -44,6 +44,7 @@ jobs:
           node tools/tests/v14.test.js app/index.html
           node tools/tests/v15.test.js app/index.html
           node tools/tests/v16.test.js app/index.html
+          node tools/tests/v18.test.js app/index.html
   build:
     needs: test
     runs-on: ubuntu-latest
