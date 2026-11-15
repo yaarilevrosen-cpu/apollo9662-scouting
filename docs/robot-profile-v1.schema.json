@@ -651,6 +651,67 @@
         },
         "drive_rating": {
           "$ref": "#/$defs/mShare"
+        },
+        "volley_cycle_s": {
+          "$ref": "#/$defs/mNum"
+        },
+        "balls_per_volley": {
+          "$ref": "#/$defs/mNum"
+        },
+        "flower_balls": {
+          "$ref": "#/$defs/mNum"
+        },
+        "bottom_nectar": {
+          "$ref": "#/$defs/mNum"
+        },
+        "garden_balls": {
+          "$ref": "#/$defs/mNum"
+        },
+        "cell_balls": {
+          "$ref": "#/$defs/mNum"
+        },
+        "minor_fouls": {
+          "$ref": "#/$defs/mNum"
+        },
+        "major_fouls": {
+          "$ref": "#/$defs/mNum"
+        },
+        "points_when_defended": {
+          "$ref": "#/$defs/mNum"
+        },
+        "points_when_free": {
+          "$ref": "#/$defs/mNum"
+        },
+        "points_sd": {
+          "$ref": "#/$defs/mNum"
+        },
+        "points_p25": {
+          "$ref": "#/$defs/mNum"
+        },
+        "nectar_hive": {
+          "$ref": "#/$defs/mShare"
+        },
+        "breakdown_share": {
+          "$ref": "#/$defs/mShare"
+        },
+        "disconnect_share": {
+          "$ref": "#/$defs/mShare"
+        },
+        "defended_share": {
+          "$ref": "#/$defs/mShare"
+        },
+        "tags": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/mShare"
+              }
+            }
+          ]
         }
       },
       "description": "A team that only had no-shows has just reliability (0). Otherwise all fields are present (null when unknown)."

@@ -57,9 +57,9 @@ const row=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-1000,aLeave:true,shotsHi
   await s.click('[data-mode="match"]');await s.waitForTimeout(150);
   await s.click('[data-startm="1"]');await s.waitForTimeout(150);
   await T(s,()=>startClock(Date.now()-33000));await s.waitForTimeout(350);
-  ok(await s.$('#shotStrip [data-strip="aTips"]'),'clock: flip during the transition counts for auto');
-  await s.click('#shotStrip [data-strip="aTips"]');
-  ok(await T(s,()=>F.aTips===1&&(F.tTips||0)===0),'clock: transition flip stored as auto');
+  ok(await s.$('#shotStrip [data-strip="aFlip"]'),'clock: flip during the transition counts for auto');
+  await s.click('#shotStrip [data-strip="aFlip"]');
+  ok(await T(s,()=>F.aFlip===1&&(F.tFlip||0)===0),'clock: transition flip stored as auto');
   await s.click('#formSave');await s.waitForTimeout(200);
   ok(!(await T(s,()=>Object.keys(window.__STORE["entries/s1"].rows).length)),'save: first tap mid-match does not save');
   ok((await s.textContent('#formMsg')).includes('עוד לא נגמר'),'save: asks to confirm mid-match');

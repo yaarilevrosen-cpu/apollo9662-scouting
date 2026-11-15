@@ -203,7 +203,7 @@ create or replace function public.note_write() returns void
 language plpgsql security definer set search_path = '' as $$
 declare k int;
 begin
-  if public.is_manager() or auth.uid() is null then return; end if;
+  if public.my_role() is distinct from 'scout' then return; end if;
   insert into public.write_rate(uid, win, n) values (auth.uid(), date_trunc('minute', now()), 1)
     on conflict (uid, win) do update set n = public.write_rate.n + 1 returning n into k;
   if k > 20 then raise exception 'rate_limited'; end if;

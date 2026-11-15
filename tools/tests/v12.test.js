@@ -45,6 +45,13 @@ const prof=n=>({nick:n,color:1,motto:"",joined:Date.now()});
   await T(m,()=>{S.control.sched[9]=[90001,90002,90003,90004];return 1;});
   await T(m,()=>ftcSync("ILNOM1",true));await m.waitForTimeout(300);
   ok(await T(m,()=>!!sched()[9]&&!!sched()[1]),'ftc: auto update never deletes matches');
+  // קוד של תחרות אחרת: אוטומטי לא נוגע; ידני – רק בלחיצה שנייה, ומאפס ניקוד
+  await T(m,()=>ftcSync("ILNOM2",true));await m.waitForTimeout(300);
+  ok(await T(m,()=>S.control.day.ftc.code==="ILNOM1"),'ftc: auto never switches to another event');
+  await m.click('#tab-admin');await m.waitForTimeout(150);await m.fill('#ftcCode','ILNOM2');await m.click('[data-ftcpull]');await m.waitForTimeout(300);
+  ok(await T(m,()=>S.control.day.ftc.code==="ILNOM1"),'ftc: another event asks first');
+  await m.click('[data-ftcpull]');await m.waitForTimeout(400);
+  ok(await T(m,()=>S.control.day.ftc.code==="ILNOM2"&&!sched()[9]),'ftc: second tap replaces the event');
   await m.click('#tab-quals');await m.waitForTimeout(300);
   ok((await m.textContent('#qualsBody')).includes('רשמי'),'quals: official rank column');
   ok(m.errs.length===0,'manager ftc: no JS errors '+m.errs.join('|'));
@@ -64,6 +71,8 @@ const prof=n=>({nick:n,color:1,motto:"",joined:Date.now()});
   ok(plan[1]!==plan[2],'shifts: rotation every 6 matches');
   ok(await T(s,()=>slotAt("u1",2)==="r1"),'shifts: auto plan keeps the past');
   ok(await T(s,()=>slotAt("u2",2)===""),'shifts: a scout added by the plan was not on duty before it');
+  await T(s,()=>{S.control.day.log.push({u:"ghost",s:"b2",f:1});return 1;});await s.click('#tab-board');await s.click('#tab-admin');await s.waitForTimeout(100);await s.click('[data-autoassign]');await s.waitForTimeout(300);
+  ok(await T(s,()=>slotAt("ghost",30)===""&&slotAt("ghost",2)==="b2"),'shifts: someone left out of the plan goes off duty');
   ok(s.errs.length===0,'shifts: no JS errors '+s.errs.join('|'));
 
   // ── סקאוטר בהפסקה ──
