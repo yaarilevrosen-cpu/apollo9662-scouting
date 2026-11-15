@@ -36,7 +36,7 @@ function png(w,h){
   fs.writeFileSync('/tmp/v14-robot.png',png(400,300));
   await p.setInputFiles('#pitPhoto','/tmp/v14-robot.png');await p.waitForTimeout(600);
   const ph=await T(p,()=>PF.photo);
-  ok(ph&&ph.startsWith('data:image/jpeg;base64,')&&ph.length<=24000,'pit: photo shrunk to a small JPEG ('+(ph||"").length+')');
+  ok(ph&&ph.startsWith('data:image/jpeg;base64,')&&ph.length<=9000,'pit: photo shrunk to a small JPEG ('+(ph||"").length+')');
   await p.click('[data-p1="drive"][data-v="tank"]');await p.click('[data-p1="shooters"][data-v="1"]');await p.click('[data-pm="intake"][data-v="floor"]');await p.click('[data-p1="balls"][data-v="both"]');
   await p.click('[data-pn="tipsAll"] [data-pd="1"]');await p.click('[data-pn="tipsAll"] [data-pd="1"]');await p.click('[data-pb="flipSide"][data-v="yes"]');
   await p.fill('#pitBreaks','השרשרת במעלית');
@@ -45,7 +45,7 @@ function png(w,h){
   ok(rec&&rec.photo&&rec.breaks==="השרשרת במעלית"&&rec.tipsAll===2&&rec.flipSide===true,'pit: answers, note and photo saved');
   ok(p.errs.length===0,'pit: no JS errors '+p.errs.join('|'));
   // אצל המנהל: תמונה וסיכום, וייצוא לסימולטור
-  const m=await page(browser,{me:"mgr",owner:true,docs:{"control/main":{cur:1,ev:"",sched},"entries/s3":JSON.parse(JSON.stringify(await T(p,()=>window.__STORE["entries/s3"])))}},{width:1280,height:900});
+  const m=await page(browser,{me:"mgr",owner:true,docs:{"control/main":{cur:1,ev:"",sched},"entries/s3":JSON.parse(JSON.stringify(await T(p,()=>window.__STORE["entries/s3"]))),"entries/s1":{rows:{},ts:1,profile:prof("נועה")}}},{width:1280,height:900});
   await m.click('#tab-pit');await m.waitForTimeout(300);await m.click('#v-pit tr[data-popen="90001"] td');await m.waitForTimeout(200);
   ok(await m.$('#pitSummary img.pit-img')&&(await m.textContent('#pitSummary')).includes('השרשרת במעלית'),'manager: photo and what breaks shown');
   const dc=await T(m,()=>declaredOf(90001));
@@ -66,6 +66,11 @@ function png(w,h){
   await m.fill('#bkTxt',parts.join("\n"));await m.click('[data-bkpaste]');await m.waitForTimeout(500);
   const got=await T(m,()=>window.__STORE["entries/s1"]);
   ok(got&&got.rows&&got.rows["m1-t90001"]&&got.rows["m1-t90001"].tFlip===2&&got.rows["m2-t90005"],'backup: manager wrote the rows into the scout\'s document');
+  ok(got.rows["m1-t90001"].ts<=Date.now(),'backup: times are not in the future');
+  // קוד מזויף בשם חשבון שלא בצוות – לא נקלט
+  const fake=await T(sc,()=>packQR({v:1,u:"ghost",n:"x",ev:"",rows:{"m1-t90002":{match:1,team:90002,ev:"",ts:1}},pit:{}}));
+  await m.fill('#bkTxt','A9662B:1/1:zz9:'+fake);await m.click('[data-bkpaste]');await m.waitForTimeout(400);
+  ok(await T(m,()=>!window.__STORE["entries/ghost"]),'backup: an unknown account is refused');
   await m.fill('#bkTxt','שלום');await m.click('[data-bkpaste]');await m.waitForTimeout(100);
   ok(m.errs.length===0,'manager: no JS errors '+m.errs.join('|'));
   // ── עברית אחידה ──

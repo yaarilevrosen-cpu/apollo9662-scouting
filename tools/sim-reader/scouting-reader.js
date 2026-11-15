@@ -80,7 +80,10 @@ function create(opt){
       emit(source,pkg,newest||Date.now());status(source);
     }finally{busy=false;}
   }
-  async function tick(force){if(stopped||(live&&!force))return;try{await fetchAll(live?"live":"poll");}catch(e){fromCache();}}
+  async function tick(force){if(stopped||(live&&!force))return;try{await fetchAll(live?"live":"poll");}catch(e){
+    /* אסימון שבוטל: אומרים את זה במפורש, כדי שהסימולטור יבקש קוד חדש */
+    if(o.token&&/bad_token/.test(String(e&&(e.message||e.code)||""))){fromCache();status("offline",{error:"bad_token"});return;}
+    fromCache();}}
   function fromCache(){
     status("offline");
     if(last)return;
@@ -98,6 +101,8 @@ function create(opt){
     }catch(e){}
     /* גם אם הענן לא זמין עכשיו – ממשיכים לנסות, ונכנסים מחדש כשהוא חוזר */
     tick(true);
+    /* אסימון: אין ערוץ חי, קוראים כל דקה */
+    if(o.token){pollT=setInterval(()=>tick(true),60000);return;}
     pollT=setInterval(()=>tick(false),POLL_MS);
     safeT=setInterval(()=>tick(true),SAFETY_MS);
   }

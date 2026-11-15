@@ -3320,7 +3320,7 @@ function trendTxt(t,n){if(n<5)return `<span class="flat" title="צריך חמי�
 const allyChip=a=>`<span class="chip ${a==="blue"?"blue":"red"}">${a==="blue"?"כחול":"אדום"}</span>`;
 let toastT=null,toastUndo=null,toastAt=0;
 function toast(t,undo){const el=$("toast");el.innerHTML="";const s=document.createElement("span");s.textContent=t;el.appendChild(s);
-  toastUndo=undo||null;if(undo){const b=document.createElement("button");b.type="button";b.id="toastUndo";b.textContent="בטל";el.appendChild(b);}
+  toastUndo=undo||null;if(undo){const b=document.createElement("button");b.type="button";b.id="toastUndo";b.textContent="ביטול";el.appendChild(b);}
   el.hidden=false;toastAt=Date.now();clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;toastUndo=null;},undo?5500:2800);}
 function buzz(p){try{if(navigator.userActivation&&!navigator.userActivation.hasBeenActive)return;navigator.vibrate?.(p);}catch(e){}}
 function scoutName(uid){const p=profileOf(uid);if(uid===S.me)return (p?.nick||S.myName||"אתה")+" (אתה)";if(p?.nick)return p.nick;if(String(uid).startsWith("demo"))return "סקאוטר "+String(uid).slice(4);return S.names[uid]||"סקאוטר";}
@@ -3990,7 +3990,7 @@ function renderAlly(){
       return {...x,fit:f,score:100*(w.a*nA(x)+w.t*nT(x)+w.e*nE(x)+w.r*nR(x)+(us&&f?w.f*fn:0))/tot};})
     .sort((p,q)=>(isTaken(p.team)-isTaken(q.team))||(dnpSet().has(p.team)-dnpSet().has(q.team))||q.score-p.score);
   let rank=0;
-  $("pick").innerHTML=A.length?`<thead><tr><th><span class="sr">נבחרה</span></th><th>#</th><th>קבוצה</th><th>ציון</th><th>ממוצע</th><th>ביחד איתנו</th><th>נחיל</th><th>מאביק</th><th>אמינות</th><th>עבירות</th><th>מאצ׳ים</th><th></th></tr></thead><tbody>${sc.map(x=>{const st=isTaken(x.team);const inAl=playoffTeams().has(x.team);const our=x.team===US;if(!st&&!our)rank++;return `<tr class="click${our?" us":""}${st?" struck":""}" tabindex="0" data-team="${x.team}"><td>${our?"":inAl?`<span class="chip">בברית</span>`:`<button class="x" data-strike="${x.team}" aria-label="${st?"החזר לרשימה":"לסמן כנבחרה"}">${st?"↺":"✕"}</button>`}</td><td class="rank">${st||our?"—":rank}</td><td>${tm(x.team)}${x.n<3?' <span class="chip warn" title="פחות משלושה מאצ׳ים">מעט נתונים</span>':""}${dnpSet().has(x.team)?' <span class="chip bad">לא לבחור</span>':""} <button class="x" data-dnp="${x.team}" aria-label="${dnpSet().has(x.team)?"להוריד מ״לא לבחור״":"לסמן ״לא לבחור״"}" title="לא לבחור">🚫</button></td><td><div class="totcell"><b>${Math.round(x.score)}</b><div class="bar" style="width:90px"><i class="a" style="width:${Math.max(0,Math.min(100,x.score))}%"></i></div></div></td><td class="num">${r1(x.avgS)}</td><td class="num">${x.fit?Math.round(x.fit.m.mu):"—"}${compatChips(x.team)?`<div style="margin-top:2px">${compatChips(x.team)}</div>`:""}</td><td class="num">${x.fit?pct(x.fit.m.pSw):"—"}</td><td class="num">${x.fit?pct(x.fit.m.pP1):"—"}</td><td>${relChip(x.rel)}</td><td class="num">${r1(x.foul)}</td><td class="num">${x.n}</td></tr>`;}).join("")}</tbody>`:`<tbody><tr><td><div class="empty">${HEXSVG}<div>הרשימה תיבנה מהנתונים שייאספו בתחרות.</div></div></td></tr></tbody>`;
+  $("pick").innerHTML=A.length?`<thead><tr><th><span class="sr">נבחרה</span></th><th>#</th><th>קבוצה</th><th>ציון</th><th>ממוצע</th><th>ביחד איתנו</th><th>נחיל</th><th>מאביק</th><th>אמינות</th><th>עבירות</th><th>מאצ׳ים</th><th></th></tr></thead><tbody>${sc.map(x=>{const st=isTaken(x.team);const inAl=playoffTeams().has(x.team);const our=x.team===US;if(!st&&!our)rank++;return `<tr class="click${our?" us":""}${st?" struck":""}" tabindex="0" data-team="${x.team}"><td>${our?"":inAl?`<span class="chip">בברית</span>`:`<button class="x" data-strike="${x.team}" aria-label="${st?"להחזיר לרשימה":"לסמן כנבחרה"}">${st?"↺":"✕"}</button>`}</td><td class="rank">${st||our?"—":rank}</td><td>${tm(x.team)}${x.n<3?' <span class="chip warn" title="פחות משלושה מאצ׳ים">מעט נתונים</span>':""}${dnpSet().has(x.team)?' <span class="chip bad">לא לבחור</span>':""} <button class="x" data-dnp="${x.team}" aria-label="${dnpSet().has(x.team)?"להוריד מ״לא לבחור״":"לסמן ״לא לבחור״"}" title="לא לבחור">🚫</button></td><td><div class="totcell"><b>${Math.round(x.score)}</b><div class="bar" style="width:90px"><i class="a" style="width:${Math.max(0,Math.min(100,x.score))}%"></i></div></div></td><td class="num">${r1(x.avgS)}</td><td class="num">${x.fit?Math.round(x.fit.m.mu):"—"}${compatChips(x.team)?`<div style="margin-top:2px">${compatChips(x.team)}</div>`:""}</td><td class="num">${x.fit?pct(x.fit.m.pSw):"—"}</td><td class="num">${x.fit?pct(x.fit.m.pP1):"—"}</td><td>${relChip(x.rel)}</td><td class="num">${r1(x.foul)}</td><td class="num">${x.n}</td></tr>`;}).join("")}</tbody>`:`<tbody><tr><td><div class="empty">${HEXSVG}<div>הרשימה תיבנה מהנתונים שייאספו בתחרות.</div></div></td></tr></tbody>`;
 }
 function fillNext(){
   const s=sched();const m=Object.keys(s).map(Number).filter(m=>m>=curMatch()&&s[m].includes(US)).sort((a,b)=>a-b)[0];
@@ -4491,7 +4491,7 @@ function renderCrew(){
   </div>
   <div class="panel"><div class="ph"><h2>טבלת הסקאוטרים</h2><span class="hint">לחיצה פותחת את הפרופיל · ניסיון: 10 לרשומה, 3 להערה של משפט, 4 לזמני היפוך, 2 לכל מאץ׳ ברצף, 15 לכל הכבוד · נספרות רק רשומות למאצ׳ים ששוחקו ולקבוצות שבאמת שיחקו בהם</span></div>
     ${all.length?`<div class="tw"><table class="stick"><thead><tr><th>#</th><th>סקאוטר</th><th>רמה</th><th>ניסיון</th><th>רשומות</th><th>רצף</th><th>הערות</th><th>כיסוי</th><th>דיוק</th><th>תגים</th><th>פעיל</th><th></th></tr></thead><tbody>${all.map((s,i)=>{const pc=s.lvlTo?Math.round((s.xp-s.lvlFrom)/(s.lvlTo-s.lvlFrom)*100):100;const reg=!!profileOf(s.uid);
-      return `<tr class="click${s.uid===S.crewSel?" us":""}" tabindex="0" data-scout="${esc(s.uid)}"><td class="rank">${i+1}</td><td>${who(s.uid,reg?undefined:'<span class="chip warn">לא נרשם</span>')}</td><td><span class="lvl">${esc(s.level)}</span></td><td><div class="totcell"><b>${s.xp}</b><div class="xpbar xpmini"><i style="width:${pc}%"></i></div></div></td><td class="num">${s.records}${s.life>s.records?` <span class="flat">/ ${s.life}</span>`:""}${s.unverified>0?` <span class="chip warn" title="רשומות שלא נספרו: מאץ׳ עתידי, קבוצה שלא שיחקה, כפילות או רשומה שהוצאה">${s.unverified} לא נספרו</span>`:""}</td><td class="num">${s.streak}</td><td class="num">${s.notes}</td><td>${s.assignedPast?`<span class="chip ${s.covered===s.assignedPast?"good":s.covered/s.assignedPast>=.8?"warn":"bad"}">${s.covered}/${s.assignedPast}</span>`:'<span class="flat">—</span>'}</td><td>${s.accN>=2?`<span class="chip ${Math.abs(s.acc)>8?"warn":"good"}">${nm((s.acc>0?"+":"")+r1(s.acc))}</span>`:'<span class="flat">—</span>'}</td><td class="num">${s.badges.length}</td><td style="font-size:13px">${s.last?ago(s.last):"—"}</td><td>${S.demo||s.uid===S.me?"":`<button class="kudo" data-kudos="${esc(s.uid)}" aria-label="שלח כל הכבוד ל${esc(scoutName(s.uid))}">כל הכבוד${s.kudos?` · <span class="num">${s.kudos}</span>`:""}</button>`}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">${HEXSVG}<div>לשתף את הדף ברמת שותף. כל מי שנרשם כסקאוטר יופיע כאן.</div></div>`}
+      return `<tr class="click${s.uid===S.crewSel?" us":""}" tabindex="0" data-scout="${esc(s.uid)}"><td class="rank">${i+1}</td><td>${who(s.uid,reg?undefined:'<span class="chip warn">לא נרשם</span>')}</td><td><span class="lvl">${esc(s.level)}</span></td><td><div class="totcell"><b>${s.xp}</b><div class="xpbar xpmini"><i style="width:${pc}%"></i></div></div></td><td class="num">${s.records}${s.life>s.records?` <span class="flat">/ ${s.life}</span>`:""}${s.unverified>0?` <span class="chip warn" title="רשומות שלא נספרו: מאץ׳ עתידי, קבוצה שלא שיחקה, כפילות או רשומה שהוצאה">${s.unverified} לא נספרו</span>`:""}</td><td class="num">${s.streak}</td><td class="num">${s.notes}</td><td>${s.assignedPast?`<span class="chip ${s.covered===s.assignedPast?"good":s.covered/s.assignedPast>=.8?"warn":"bad"}">${s.covered}/${s.assignedPast}</span>`:'<span class="flat">—</span>'}</td><td>${s.accN>=2?`<span class="chip ${Math.abs(s.acc)>8?"warn":"good"}">${nm((s.acc>0?"+":"")+r1(s.acc))}</span>`:'<span class="flat">—</span>'}</td><td class="num">${s.badges.length}</td><td style="font-size:13px">${s.last?ago(s.last):"—"}</td><td>${S.demo||s.uid===S.me?"":`<button class="kudo" data-kudos="${esc(s.uid)}" aria-label="לשלוח כל הכבוד ל${esc(scoutName(s.uid))}">כל הכבוד${s.kudos?` · <span class="num">${s.kudos}</span>`:""}</button>`}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">${HEXSVG}<div>לשתף את הדף ברמת שותף. כל מי שנרשם כסקאוטר יופיע כאן.</div></div>`}
   </div>
   ${sel?`<div class="panel" id="crewDetail"><div class="hero">${avatar(sel.uid,96)}<div style="display:grid;gap:4px;min-width:0"><h2>${esc(scoutName(sel.uid))}</h2>${profileOf(sel.uid)?.motto?`<span class="motto">${esc(profileOf(sel.uid).motto)}</span>`:""}<span class="flat" style="font-size:13px">${slotAt(sel.uid,curMatch())?"עמדה "+SLOTNAME[slotAt(sel.uid,curMatch())]:"לא משובץ עכשיו"}${profileOf(sel.uid)?.joined?" · בצוות מ־"+new Date(profileOf(sel.uid).joined).toLocaleDateString("he-IL"):""}</span></div>${xpBlock(sel)}</div>
     <div class="minis" style="margin-top:14px">${[["רשומות בתחרות",nm(sel.records)],["סך הכול",nm(sel.life)],["הערות",nm(sel.notes)],["רצף הכי ארוך",nm(sel.streak)],["עם השעון",nm(sel.clock)],["דיוק",sel.accN?nm((sel.acc>0?"+":"")+r1(sel.acc)):"—"]].map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("")}</div>
@@ -4857,7 +4857,7 @@ function pitClean(e){
   o.notes=typeof e.notes==="string"?e.notes.replace(STRIP,"").slice(0,400):"";
   o.breaks=typeof e.breaks==="string"?e.breaks.replace(STRIP,"").slice(0,80):"";
   /* תמונה קטנה בלבד (בערך 10 קילובייט), ורק JPEG בקידוד base64 */
-  o.photo=typeof e.photo==="string"&&e.photo.length<=24000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(e.photo)?e.photo:"";
+  o.photo=typeof e.photo==="string"&&e.photo.length<=9000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(e.photo)?e.photo:"";
   o.retry=!!e.retry;
   o.edits=(Array.isArray(e.edits)?e.edits:[]).map(x=>Math.max(0,Math.min(+x||0,Date.now()+300000))).filter(Boolean).slice(-5);
   /* רשומה ישנה בלי set: כל מה שאינו ברירת מחדל נחשב כנענה */
@@ -4958,6 +4958,7 @@ function pitSave(retry){
   PF.notes=$("pitNotes")?.value??PF.notes;
   if(retry&&prev&&!prev.retry){toast("כבר יש לך רשומה מלאה לקבוצה הזו");return;}
   const body={...pitClean(PF),retry:!!retry,team,ts:Date.now(),ev:curEv(),edits:prev?[...(prev.edits||[]),prev.ts].slice(-5):[]};
+  if(body.photo&&sizeOf({...S.myRaw})+sizeOf({...S.myPit,[id]:body})>200000){body.photo="";toast("המסמך שלך כמעט מלא – התמונה לא נשמרה, התשובות כן");}
   S.pitPending[id]=body;const stored=LS.set(pitPendKey(),S.pitPending);S.pitDirty=false;
   if(LS_OK&&!stored){S.storeFail=true;toast("הזיכרון בטלפון מלא – לא לסגור את הדף עד שהרשומה תישלח");S.pitTeam=null;PF=null;flush();renderPit();return;}
   const part=!retry&&pitReqFor(body.shooters).some(k=>!body.set.includes(k));
@@ -5054,7 +5055,7 @@ $("v-pit").addEventListener("click",ev=>{
   const d=t.dataset;let hit=true;
   if(d.popen&&!ev.target.closest("select"))pitOpen(+d.popen);
   else if(d.pother)pitOpen($("pit-other").value);
-  else if(d.pclose){if(S.pitDirty&&pitArm!=="close"){pitArm="close";toast("יש שינויים שלא נשמרו. ללחוץ שוב על סגור");return;}pitArm=null;S.pitTeam=null;PF=null;S.pitDirty=false;renderPit();}
+  else if(d.pclose){if(S.pitDirty&&pitArm!=="close"){pitArm="close";toast("יש שינויים שלא נשמרו. ללחוץ שוב על סגירה");return;}pitArm=null;S.pitTeam=null;PF=null;S.pitDirty=false;renderPit();}
   else if(d.pauto)pitAutoAssign();
   else if(d.pphotodel&&PF){PF.photo="";S.pitDirty=true;renderPit();}
   else if(d.psave)pitSave(false);
@@ -5075,12 +5076,14 @@ document.addEventListener("input",e=>{if(e.target.id==="simMatch"){const v=N(e.t
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="simMatch"){e.preventDefault();if(N(e.target.value,999))simExport("match");}});
 $("v-pit").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="pit-other"){e.preventDefault();pitOpen(e.target.value);}});
 $("v-pit").addEventListener("input",e=>{if(e.target.id==="pitNotes"&&PF){PF.notes=e.target.value;S.pitDirty=true;}if(e.target.id==="pitBreaks"&&PF){PF.breaks=e.target.value;S.pitDirty=true;}});
-/* תמונת רובוט: מוקטנת בטלפון ל־240 פיקסלים, כדי שתיכנס למסמך של הסקאוטר */
+/* תמונת רובוט: מוקטנת בטלפון ל־160 פיקסלים (עד 9,000 תווים), כדי שתיכנס למסמך של הסקאוטר */
 async function shrinkPhoto(file){
-  const bmp=await createImageBitmap(file);const sc=Math.min(1,240/Math.max(bmp.width,bmp.height));
+  /* פענוח מוקטן כבר בדפדפן (תמונה של 12 מגה־פיקסל כבדה לטלפון). ספארי ישן בלי האפשרות – פענוח רגיל */
+  let bmp;try{bmp=await createImageBitmap(file,{resizeWidth:320,resizeQuality:"medium"});}catch(e){bmp=await createImageBitmap(file);}
+  const sc=Math.min(1,160/Math.max(bmp.width,bmp.height));
   const c=document.createElement("canvas");c.width=Math.max(1,Math.round(bmp.width*sc));c.height=Math.max(1,Math.round(bmp.height*sc));
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);bmp.close?.();
-  for(const q of [.6,.45,.3]){const u=c.toDataURL("image/jpeg",q);if(u.length<=24000)return u;}
+  for(const q of [.6,.45,.3,.2]){const u=c.toDataURL("image/jpeg",q);if(u.length<=9000)return u;}
   return "";
 }
 $("v-pit").addEventListener("change",async e=>{if(e.target.id!=="pitPhoto"||!PF)return;const f=e.target.files?.[0];if(!f)return;
@@ -5223,7 +5226,7 @@ function renderSimSync(){
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-joincode="1">לשמור קוד</button></div>
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-signout="1">להתנתק</button></div></div>
     <div style="margin-top:12px"><div class="lbl">סקאוטרים שהצטרפו ${scoutsCache?"("+scoutsCache.length+")":""}</div>
-    ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span>${m.role==="removed"?'<span class="chip">הוסר</span>':""}<span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><span style="margin-inline-start:auto;display:flex;gap:6px">${m.role==="removed"?`<button class="btn" data-rstscout="${esc(m.uid)}">להחזיר</button><button class="btn" data-wipescout="${esc(m.uid)}">${rmArm==="w"+m.uid?"ללחוץ שוב: מחיקה לתמיד":"למחוק גם את הרשומות"}</button>`:`<button class="btn" data-rmscout="${esc(m.uid)}">${rmArm===m.uid?"ללחוץ שוב להסרה":"הסר"}</button>`}</span></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">להציג</button>`}
+    ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span>${m.role==="removed"?'<span class="chip">הוסר</span>':""}<span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><span style="margin-inline-start:auto;display:flex;gap:6px">${m.role==="removed"?`<button class="btn" data-rstscout="${esc(m.uid)}">להחזיר</button><button class="btn" data-wipescout="${esc(m.uid)}">${rmArm==="w"+m.uid?"ללחוץ שוב: מחיקה לתמיד":"למחוק גם את הרשומות"}</button>`:`<button class="btn" data-rmscout="${esc(m.uid)}">${rmArm===m.uid?"ללחוץ שוב להסרה":"הסרה"}</button>`}</span></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">להציג</button>`}
     <div class="flat" style="font-size:12px;margin-top:6px">הסרה חוסמת את הגישה בלבד: הרשומות שכבר נשמרו נשארות ונספרות. מחיקת הרשומות היא צעד נפרד, ואי אפשר לבטל אותה. כדאי גם להחליף את קוד ההצטרפות.</div></div>
     <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור – בלי סיסמה (מומלץ)</div>
     <div class="flat" style="font-size:12px;margin-top:4px">כל לחיצה יוצרת אסימון קריאה חדש, והקוד הקודם מפסיק לעבוד מיד. הסימולטור קורא איתו רק את הפרופילים. צריך שהסימולטור יכיר קוד מגרסה 2.</div>
@@ -5341,22 +5344,24 @@ async function backupOpen(){
   if(typeof qrcode!=="function"||!window.CompressionStream){toast("הדפדפן הזה לא יודע ליצור קוד");return;}
   const pend=Object.fromEntries(Object.entries(S.pending).filter(([,r])=>r));
   const rows=Object.keys(pend).length?pend:Object.fromEntries(Object.entries(mergedRaw()).filter(([,r])=>r&&!r.deleted&&String(r.ev||"")===curEv()));
-  const pit=Object.fromEntries(Object.entries(S.pitPending).filter(([,r])=>r));
+  /* בלי תמונות: כל תמונה הייתה עשרות קודים */
+  const pit=Object.fromEntries(Object.entries(S.pitPending).filter(([,r])=>r).map(([id,r])=>[id,{...r,photo:""}]));
   if(!Object.keys(rows).length&&!Object.keys(pit).length){toast("אין רשומות לגיבוי");return;}
   const data=await packQR({v:1,u:S.me,n:myProfile()?.nick||"",ev:curEv(),rows,pit});const SZ=380;const n=Math.ceil(data.length/SZ);
   QR.id=Math.random().toString(36).slice(2,6);QR.parts=[];for(let i=0;i<n;i++)QR.parts.push(`A9662B:${i+1}/${n}:${QR.id}:`+data.slice(i*SZ,(i+1)*SZ));
   QR.m=0;QR.title="גיבוי של "+Object.keys(rows).length+" רשומות"+(Object.keys(pit).length?" ו־"+Object.keys(pit).length+" פיט":"");QR.full=QR.parts.join("\n");qrShow(0);
 }
 /* אצל המנהל: אוספים חלקים (מצלמה או הדבקה), ובסוף כותבים למסמך של הסקאוטר */
-const BK={id:"",n:0,parts:{}};
+const BK={id:"",n:0,parts:{}};let quietScan=false;
 async function backupFeed(txt){
-  let got=0,done=null;
+  let got=0,done=null,valid=0;
   for(const line of String(txt||"").split(/\s+/)){const m=/^A9662B:(\d+)\/(\d+):([a-z0-9]{1,8}):([A-Za-z0-9_-]+)$/.exec(line.trim());if(!m)continue;
-    const i=+m[1],n=+m[2];if(!n||n>200||i<1||i>n)continue;
+    const i=+m[1],n=+m[2];if(!n||n>200||i<1||i>n)continue;valid++;
     if(BK.id!==m[3]){BK.id=m[3];BK.n=n;BK.parts={};}
     if(!BK.parts[i]){BK.parts[i]=m[4];got++;}
     if(Object.keys(BK.parts).length===BK.n)done=true;}
-  if(!got&&!done){toast("זה לא קוד גיבוי של הסקאוטינג");return false;}
+  if(!valid){if(!quietScan)toast("זה לא קוד גיבוי של הסקאוטינג");return false;}
+  if(!got&&!done)return false;
   if(!done){toast("נקלטו "+Object.keys(BK.parts).length+" מתוך "+BK.n+" קודים");renderBkStatus();return false;}
   try{const o=await unpackQR(Array.from({length:BK.n},(_,i)=>BK.parts[i+1]).join(""));BK.id="";BK.parts={};await backupApply(o);}catch(e){toast("הקוד פגום. לסרוק שוב");BK.id="";BK.parts={};}
   renderBkStatus();return true;
@@ -5364,24 +5369,27 @@ async function backupFeed(txt){
 async function backupApply(o){
   if(!isMgr()||!db||S.demo){toast("רק המנהל, ולא במצב הדגמה");return;}
   const u=String(o?.u||"").replace(/[^A-Za-z0-9_-]/g,"").slice(0,80);if(!u){toast("בקוד חסר מי הסקאוטר");return;}
+  /* רק סקאוטר שכבר מוכר (יש לו מסמך, או ברשימת המצטרפים). השם מהרשימה שלנו, לא מהקוד */
+  const known=!!S.docs[u]||(scoutsCache||[]).some(m=>m.uid===u&&m.role==="scout");
+  if(!known){toast("הקוד הוא של חשבון שלא מוכר כסקאוטר בצוות. לא נקלט");return;}
   const rows={},pit={};
-  for(const [id,r] of Object.entries(o.rows||{})){const x=readRow(id,r,u);if(x){const {by,id:_i,...rest}=x;rows[id]={...rest,ts:+r.ts||Date.now()};}}
-  for(const [id,r] of Object.entries(o.pit||{})){const x=pitRead(id,r,u);if(x){const {by,id:_i,...rest}=x;pit[id]={...rest,ts:Math.min(+r.ts||Date.now(),Date.now())};}}
+  for(const [id,r] of Object.entries(o.rows||{})){const x=readRow(id,r,u);if(x){const {by,id:_i,...rest}=x;rows[id]={...rest,ts:Math.min(+r.ts||Date.now(),Date.now())};}}
+  for(const [id,r] of Object.entries(o.pit||{})){const x=pitRead(id,r,u);if(x){const {by,id:_i,...rest}=x;pit[id]={...rest,photo:"",ts:Math.min(+r.ts||Date.now(),Date.now())};}}
   if(!Object.keys(rows).length&&!Object.keys(pit).length){toast("אין בקוד רשומות תקינות");return;}
   const ref=db.doc("entries/"+u);const patch={ts:Date.now()};if(Object.keys(rows).length)patch.rows=rows;if(Object.keys(pit).length)patch.pit=pit;
   try{await ref.update(patch);}catch(e){if(e?.code==="not_found")await ref.set({rows,pit,ts:Date.now()});else{toast("הכתיבה נכשלה. לנסות שוב כשיש רשת");return;}}
-  toast("התקבלו "+Object.keys(rows).length+" רשומות"+(Object.keys(pit).length?" ו־"+Object.keys(pit).length+" פיט":"")+" מ"+(o.n?String(o.n).slice(0,20):"הסקאוטר"));
+  toast("התקבלו "+Object.keys(rows).length+" רשומות"+(Object.keys(pit).length?" ו־"+Object.keys(pit).length+" פיט":"")+" מ"+scoutName(u));
 }
-function renderBkStatus(){const el=$("bkStatus");if(el)el.textContent=BK.id?"נקלטו "+Object.keys(BK.parts).length+" מתוך "+BK.n+" קודים":"";}
+function renderBkStatus(){for(const id of ["bkStatus","bkScanStatus"]){const el=$(id);if(el)el.textContent=BK.id?"נקלטו "+Object.keys(BK.parts).length+" מתוך "+BK.n+" קודים":"";}}
 let bkStream=null;
 async function backupScan(){
   if(!("BarcodeDetector" in window)){toast("בדפדפן הזה אין סורק קודים מובנה. להדביק את הקוד, או לסרוק בטלפון אנדרואיד");return;}
   let det;try{det=new BarcodeDetector({formats:["qr_code"]});}catch(e){toast("אין סורק קודים בדפדפן הזה");return;}
   try{bkStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});}catch(e){toast("אין גישה למצלמה");return;}
   const box=document.createElement("div");box.id="bkScan";box.setAttribute("role","dialog");box.setAttribute("aria-label","סריקת גיבוי");
-  box.innerHTML=`<div class="qr-card"><h3>מכוונים לקוד שעל המסך של הסקאוטר</h3><video playsinline muted style="width:100%;max-width:360px;border-radius:12px"></video><div class="flat" id="bkStatus"></div><button class="btn" data-bkstop="1">סיום</button></div>`;
+  box.innerHTML=`<div class="qr-card"><h3>מכוונים לקוד שעל המסך של הסקאוטר</h3><video playsinline muted style="width:100%;max-width:360px;border-radius:12px"></video><div class="flat" id="bkScanStatus" role="status"></div><button class="btn" data-bkstop="1">סיום</button></div>`;
   document.body.appendChild(box);const v=box.querySelector("video");v.srcObject=bkStream;await v.play().catch(()=>{});
-  const tick=async()=>{if(!$("bkScan"))return;try{const r=await det.detect(v);for(const c of r)if(await backupFeed(c.rawValue)){backupStop();return;}}catch(e){}setTimeout(tick,300);};tick();
+  const tick=async()=>{if(!$("bkScan"))return;try{const r=await det.detect(v);quietScan=true;for(const c of r)if(await backupFeed(c.rawValue)){quietScan=false;backupStop();return;}}catch(e){}quietScan=false;setTimeout(tick,300);};tick();
 }
 function backupStop(){try{bkStream?.getTracks().forEach(t=>t.stop());}catch(e){}bkStream=null;$("bkScan")?.remove();}
 document.addEventListener("click",ev=>{const t=ev.target.closest("[data-bkqr],[data-bkscan],[data-bkstop],[data-bkpaste],[data-bkshare]");if(!t)return;
