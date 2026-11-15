@@ -21,7 +21,7 @@ function setMode(m,err){if(state.mode!==m){state.mode=m;state.since=Date.now();}
 const cacheGet=k=>{try{return JSON.parse(localStorage.getItem(CACHE+k)||"null");}catch(e){return null;}};
 const cacheSet=(k,v)=>{try{localStorage.setItem(CACHE+k,JSON.stringify(v));}catch(e){}};
 const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
-const CODES=["not_found","permission_denied","bad_code","too_big","not_configured","unavailable"];
+const CODES=["not_found","permission_denied","bad_code","too_big","not_configured","unavailable","rate_limited"];
 function errCode(e){
   /* שגיאה שכבר עטופה (fail) שומרת על הקוד שלה */
   if(e&&CODES.includes(e.code))return e.code;
@@ -30,6 +30,7 @@ function errCode(e){
   if(/row-level security|permission|42501|not_manager|PGRST301|JWT/i.test(m))return "permission_denied";
   if(/bad_code/.test(m))return "bad_code";
   if(/too_big/.test(m))return "too_big";
+  if(/rate_limited/.test(m))return "rate_limited";
   if(/not_configured/.test(m))return "not_configured";
   /* "Load failed" – כך ספארי באייפון מדווח על רשת בלי אינטרנט */
   if(/Failed to fetch|NetworkError|network|fetch|timeout|abort|ECONN|Load failed/i.test(m)||navigator.onLine===false)return "unavailable";
@@ -163,6 +164,8 @@ async function loadMember(){
   const {data,error}=await sb().from("members").select("role,name").eq("uid",user.id).limit(1);
   if(error)throw error;
   if(!data.length)return null;
+  /* סקאוטר שהמנהל הסיר: לא נכנס. מסך הכניסה יגיד לו לפנות למנהל */
+  if(data[0].role==="removed"){state.removed=true;return null;}
   state.role=data[0].role;state.name=data[0].name||"";
   try{localStorage.setItem("a9662-member",JSON.stringify({uid:user.id,role:state.role,name:state.name}));}catch(e){}
   return data[0];
@@ -267,6 +270,7 @@ async function gate(mode){
     let gmode=null;try{const v=JSON.parse(localStorage.getItem("bbz-mode")||"null");if(v==="match"||v==="pit")gmode=v;}catch(e){}
     const markMode=()=>box.querySelectorAll("[data-gmode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.gmode===gmode)));markMode();
     box.querySelectorAll("[data-gmode]").forEach(b=>b.addEventListener("click",()=>{gmode=b.dataset.gmode;markMode();msg("");}));
+    if(state.removed)setTimeout(()=>msg("המנהל הסיר את החשבון הזה מהצוות. לפנות אליו כדי לחזור"),0);
     $g("cgTabScout").addEventListener("click",()=>show("cgJoin"));
     $g("cgTabMgr").addEventListener("click",()=>show("cgMgr"));
     $g("cgForgot").addEventListener("click",()=>{show("cgReset");$g("cgRMail").value=$g("cgMail").value;});
@@ -292,6 +296,7 @@ async function gate(mode){
         if(res==="bad_code"){msg("הקוד לא נכון");return;}
         if(res==="rate_limited"){msg("יותר מדי ניסיונות. לנסות שוב בעוד כמה דקות");return;}
         if(res==="full"){msg("הצוות מלא. לפנות למנהל");return;}
+        if(res==="removed"){msg("המנהל הסיר את החשבון הזה מהצוות. לפנות אליו כדי לחזור");return;}
         if(await loadMember()){if(old&&old.uid&&old.uid!==state.uid)migrate(old.uid,state.uid);done();}
       }catch(e){const c=errCode(e);msg(c==="unavailable"?"אין רשת. לנסות שוב, או להשתמש בגיבוי של הקבוצה":"הכניסה לא הצליחה");}});});
     $g("cgMgr").addEventListener("submit",ev=>{ev.preventDefault();msg("");
@@ -420,12 +425,14 @@ async function signOut(force){
   try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(a9662-|bbz-(draft|profile|tab))/.test(k))ks.push(k);}ks.forEach(k=>localStorage.removeItem(k));}catch(e){}
   location.reload();return "ok";
 }
-async function listScouts(){await ready;const {data,error}=await sb().from("members").select("uid,name,role,joined_at").eq("role","scout").order("joined_at");if(error)throw fail(error);return data;}
-/* הסרת סקאוטר: השורה שלו והרשומות שלו */
-async function removeScout(uid){await ready;
-  /* קודם הרשומות (אחרי הסרת החבר הן כבר לא גלויות למחיקה), ואז החבר */
+async function listScouts(){await ready;const {data,error}=await sb().from("members").select("uid,name,role,joined_at").in("role",["scout","removed"]).order("joined_at");if(error)throw fail(error);return data;}
+/* הסרת סקאוטר. בלי wipe: רק חוסמים את הגישה (role=removed). הרשומות שלו נשארות ונספרות.
+   עם wipe: מוחקים גם את הרשומות, ואז את החבר */
+async function removeScout(uid,wipe){await ready;
+  if(!wipe){const {error}=await sb().rpc("set_scout_role",{target:uid,new_role:"removed"});if(error)throw fail(error);refreshAll();return;}
   const r1=await sb().from("docs").delete().eq("path","entries/"+uid);if(r1.error)throw fail(r1.error);
   const r2=await sb().from("members").delete().eq("uid",uid);if(r2.error)throw fail(r2.error);refreshAll();}
+async function restoreScout(uid){await ready;const {error}=await sb().rpc("set_scout_role",{target:uid,new_role:"scout"});if(error)throw fail(error);refreshAll();}
 
 /* קוד חיבור לסימולטור: בודקים שהמייל והסיסמה באמת של חשבון קריאה, בחיבור זמני נפרד
    (לא נוגע בכניסה של המנהל ולא נשמר בדפדפן), ומחזירים את מה שנכנס לקוד */
@@ -441,6 +448,6 @@ async function simConnInfo(email,pw){
   }finally{try{await tmp.auth.signOut({scope:"local"});}catch(_){}}
   return {url:CFG.url,key:CFG.anonKey};
 }
-window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,signOut,listScouts,removeScout,pendingCount,ready,_refreshAll:refreshAll};
+window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,signOut,listScouts,removeScout,restoreScout,pendingCount,ready,_refreshAll:refreshAll};
 window.claude={use:async k=>k==="db"?db:k==="user"?user:k==="downloads"?downloads:null};
 })();

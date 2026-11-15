@@ -10,6 +10,18 @@ create table if not exists public.members (
   joined_at  timestamptz not null default now()
 );
 
+-- גרסה 12: "removed" – סקאוטר שהמנהל הסיר. הרשומות שלו נשארות, אבל אין לו גישה לכלום
+alter table public.members drop constraint if exists members_role_check;
+alter table public.members add constraint members_role_check check (role in ('scout','manager','reader','removed'));
+
+-- ── הגבלת קצב כתיבה (גרסה 12): נגד סקאוטר שכותב בלולאה ומכלה את המכסה החינמית ──
+create table if not exists public.write_rate (
+  uid  uuid not null,
+  win  timestamptz not null,
+  n    int not null default 0,
+  primary key (uid, win)
+);
+
 -- ── הגדרות פרטיות (קוד הצטרפות). אף אחד לא קורא ישירות, רק דרך פונקציות ──
 create table if not exists public.settings (
   key   text primary key,
@@ -85,6 +97,8 @@ alter table public.sim_profiles enable row level security;
 alter table public.sim_meta     enable row level security;
 -- ניסיונות הצטרפות: בלי מדיניות = חסום לכולם. רק join_team (בהרשאות הבעלים) נוגעת בה
 alter table public.join_attempts enable row level security;
+-- קצב כתיבה: בלי מדיניות = חסום לכולם. רק note_write (בהרשאות הבעלים) נוגעת בה
+alter table public.write_rate enable row level security;
 
 -- חברים: כל אחד רואה את עצמו; מנהל רואה את כולם. שינוי תפקידים – רק מנהל.
 drop policy if exists members_read on public.members;
@@ -129,6 +143,7 @@ revoke all on public.members, public.settings, public.docs, public.sim_profiles,
 grant select, insert, update, delete on public.members, public.docs, public.sim_profiles, public.sim_meta to authenticated;
 revoke all on public.settings from authenticated;
 revoke all on public.join_attempts from anon, authenticated;
+revoke all on public.write_rate from anon, authenticated;
 
 -- ── פונקציות ──
 -- הצטרפות כסקאוטר עם קוד הקבוצה. מנהל וקורא לא משתנים.
@@ -171,6 +186,32 @@ end $$;
 revoke all on function public.set_join_code(text) from public;
 grant execute on function public.set_join_code(text) to authenticated;
 
+-- הסרה והחזרה של סקאוטר – רק מנהל, ורק בין "scout" ל־"removed" (לא נוגע במנהל או בקורא)
+create or replace function public.set_scout_role(target uuid, new_role text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_manager() then raise exception 'not_manager'; end if;
+  if new_role not in ('scout','removed') then raise exception 'bad_role'; end if;
+  update public.members set role = new_role where uid = target and role in ('scout','removed');
+  if not found then raise exception 'not_found'; end if;
+end $$;
+revoke all on function public.set_scout_role(uuid, text) from public;
+grant execute on function public.set_scout_role(uuid, text) to authenticated;
+
+-- קצב: עד 20 כתיבות בדקה לכל סקאוטר (שמירה רגילה היא אחת בכמה שניות). מנהל – בלי הגבלה
+create or replace function public.note_write() returns void
+language plpgsql security definer set search_path = '' as $$
+declare k int;
+begin
+  if public.is_manager() or auth.uid() is null then return; end if;
+  insert into public.write_rate(uid, win, n) values (auth.uid(), date_trunc('minute', now()), 1)
+    on conflict (uid, win) do update set n = public.write_rate.n + 1 returning n into k;
+  if k > 20 then raise exception 'rate_limited'; end if;
+  if random() < 0.02 then delete from public.write_rate where win < now() - interval '1 hour'; end if;
+end $$;
+revoke all on function public.note_write() from public;
+grant execute on function public.note_write() to authenticated;
+
 -- כתיבה למסמך: set (החלפה) או merge (מיזוג עמוק). רץ בהרשאות המשתמש, כך שהמדיניות חלה.
 drop function if exists public.doc_write(text, jsonb, boolean);
 drop function if exists public.jsonb_deep_merge(jsonb, jsonb);
@@ -183,6 +224,7 @@ begin
   select count(*) into n from jsonb_object_keys(p_data);
   if n > 16 then raise exception 'bad_data'; end if;
   if p_path like 'entries/%' and pg_column_size(p_data) > 262144 then raise exception 'too_big'; end if;
+  if p_path like 'entries/%' then perform public.note_write(); end if;
   if p_mode = 'merge' or p_mode = 'fields' then
     update public.docs set data = case when p_mode = 'merge' then public.jsonb_deep_merge(data, p_data) else data || p_data end
       where path = p_path;

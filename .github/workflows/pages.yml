@@ -39,6 +39,7 @@ jobs:
           node tools/tests/pit.test.js app/index.html
           node tools/tests/profile.test.js app/index.html
           node tools/tests/v11.test.js app/index.html
+          node tools/tests/v12.test.js app/index.html
   build:
     needs: test
     runs-on: ubuntu-latest

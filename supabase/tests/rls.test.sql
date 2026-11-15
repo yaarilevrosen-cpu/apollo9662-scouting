@@ -97,5 +97,29 @@ select pg_temp.expect_fail($$insert into sim_profiles(team,data) values (90002,'
 do $$ begin update sim_profiles set data='{}'; if (select data from sim_profiles where team=90001) = '{}'::jsonb then raise exception 'reader changed profile'; end if; exception when insufficient_privilege then null; end $$;
 do $$ begin if join_team('code5678','x') <> 'reader' then raise exception 'reader role changed by join'; end if; end $$;
 
+-- גרסה 12: הסרת סקאוטר בלי מחיקת רשומות
+select pg_temp.as_user(:'s2');
+select pg_temp.expect_fail($$select set_scout_role('22222222-2222-2222-2222-222222222222','removed')$$,'scout removes scout');
+select pg_temp.as_user(:'mgr');
+select set_scout_role(:'s1','removed');
+select pg_temp.expect_fail($$select set_scout_role('44444444-4444-4444-4444-444444444444','removed')$$,'manager demotes reader via set_scout_role');
+select pg_temp.expect_fail($$select set_scout_role('22222222-2222-2222-2222-222222222222','manager')$$,'set_scout_role to manager');
+do $$ begin if not exists (select 1 from docs where path='entries/22222222-2222-2222-2222-222222222222') then raise exception 'manager lost removed scout records'; end if; end $$;
+select pg_temp.as_user(:'s1');
+do $$ begin if (select count(*) from docs) <> 0 then raise exception 'removed scout still reads'; end if; end $$;
+select pg_temp.expect_fail($$select doc_write('entries/22222222-2222-2222-2222-222222222222','{"rows":{}}','merge')$$,'removed scout writes');
+do $$ begin if join_team('code5678','x') <> 'removed' then raise exception 'removed scout rejoined'; end if; end $$;
+select pg_temp.as_user(:'mgr');
+select set_scout_role(:'s1','scout');
+-- הגבלת קצב: הכתיבה ה־21 באותה דקה נחסמת. מנהל בלי הגבלה
+select pg_temp.as_user(:'s2');
+reset role; delete from write_rate; set role authenticated; select pg_temp.as_user(:'s2');
+select doc_write('entries/33333333-3333-3333-3333-333333333333','{"rows":{},"ts":1}','set');
+do $$ begin for i in 2..20 loop perform doc_write('entries/33333333-3333-3333-3333-333333333333','{"ts":1}','merge'); end loop; end $$;
+select pg_temp.expect_fail($$select doc_write('entries/33333333-3333-3333-3333-333333333333','{"ts":2}','merge')$$,'21st write in a minute');
+select pg_temp.expect_fail($$select * from write_rate$$,'scout reads write_rate');
+select pg_temp.as_user(:'mgr');
+do $$ begin for i in 1..25 loop perform doc_write('control/main','{"cur":2}','fields'); end loop; end $$;
+
 reset role;
 select 'ALL RLS TESTS PASSED' as result;

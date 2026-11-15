@@ -72,6 +72,7 @@ button{cursor:pointer}
 .banner button{margin-inline-start:auto}
 
 section.view{padding-top:12px;display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.btn[aria-pressed="true"]{background:var(--honey-soft);border-color:var(--honey);font-weight:800}
 .vh{padding-top:18px;display:grid;gap:4px}
 .vh h2{font-size:26px;line-height:1.15}
 .vh p{margin:0;color:var(--muted);max-width:72ch}
@@ -403,6 +404,8 @@ svg .he{font-family:var(--f-body)}
 
   <div class="banner" id="demoBanner" hidden>מוצגים נתוני הדגמה מומצאים. הם לא נשמרים ולא נראים לאף אחד אחר.<button class="btn" id="demoOff">חזרה לנתונים אמיתיים</button></div>
   <div class="vh" id="viewHead" hidden><h2 id="vhT"></h2><p id="vhD"></p></div>
+  <div class="banner" id="bcBanner" hidden role="alert"><span>📣 <b>מהמנהל:</b> <span id="bcText"></span></span><button class="btn" id="bcOk">הבנתי</button></div>
+  <div class="banner err" id="covAlert" hidden></div>
   <div class="banner err" id="failBanner" hidden><span id="failTxt">רשומות לא נשלחות.</span><button class="btn" id="retryNow">נסה לשלוח עכשיו</button></div>
 
   <div class="skel" id="v-loading" aria-label="טוען"><i></i><i></i><i></i></div>
@@ -2969,6 +2972,12 @@ const rowId=(m,t)=>(curEv()?curEv()+"_":"")+"m"+m+"-t"+t;
 const sched=()=>S.demo?S.demoData.sched:(S.control.sched||{});
 const curMatch=()=>S.demo?S.demoData.cur:(+S.control.cur||1);
 const scores=()=>S.demo?S.demoData.scores:(S.control.scores||{});
+/* שיבוץ לפי מאץ׳: יומן "מהמאץ׳ הזה והלאה, הסקאוטר בעמדה הזו" (ריק = הפסקה). בלי יומן – השיבוץ הישן */
+function slotAt(u,m){if(!u||S.demo)return "";const L=S.control.day?.log||[];let best=null,any=false;for(const e of L)if(e.u===u){any=true;if(e.f<=m&&(!best||e.f>=best.f))best=e;}
+  /* יש לו שורות ביומן אבל אף אחת עוד לא חלה: לא היה משובץ אז */
+  return best?best.s:any?"":(S.control.assign?.[u]||"");}
+const mySlot=m=>slotAt(S.me,m??curMatch());
+const slotUsers=()=>[...new Set([...Object.keys(S.control.assign||{}),...(S.control.day?.log||[]).map(e=>e.u)])];
 
 /* ── ניקוי: כל ערך שמגיע מהמאגר עובר כאן לפני שהוא נוגע במסך ── */
 const STRIP=/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g;
@@ -3011,6 +3020,13 @@ function readControl(v){
   c.board=(Array.isArray(v.board)?v.board:[]).slice(0,10).map(b=>({uid:String(b?.uid||"").slice(0,80),nick:String(b?.nick||"").slice(0,20),color:Math.max(0,Math.min(5,Math.round(+b?.color||0))),xp:Math.max(0,Math.round(+b?.xp||0)),records:Math.max(0,Math.round(+b?.records||0)),level:String(b?.level||"").slice(0,20)}));
   c.boardAt=+v.boardAt||0;
   c.struck=[...new Set((Array.isArray(v.struck)?v.struck:[]).map(x=>N(x,99999)).filter(Boolean))].slice(0,300);
+  /* day: מה שנוסף בגרסה 12, תחת מפתח אחד (מסמך הבקרה מוגבל ל־16 מפתחות עליונים) */
+  const dy=v.day&&typeof v.day==="object"?v.day:{};c.day={};
+  c.day.log=(Array.isArray(dy.log)?dy.log:[]).slice(-400).map(e=>({u:String(e?.u||"").slice(0,80),s:SLOTNAME[e?.s]?e.s:"",f:N(e?.f,999)||1})).filter(e=>e.u);
+  if(dy.msg&&typeof dy.msg==="object"&&dy.msg.t)c.day.msg={t:String(dy.msg.t).replace(STRIP,"").slice(0,200),at:+dy.msg.at||0,to:String(dy.msg.to||"all").slice(0,80)};
+  if(dy.ftc&&typeof dy.ftc==="object")c.day.ftc={code:String(dy.ftc.code||"").replace(/[^a-z0-9]/gi,"").slice(0,16).toUpperCase(),auto:!!dy.ftc.auto,at:+dy.ftc.at||0,n:N(dy.ftc.n,999)};
+  c.day.ranks={};for(const [t,x] of Object.entries(dy.ranks||{})){const tt=N(t,99999);if(tt&&Array.isArray(x)&&N(x[0],999))c.day.ranks[tt]=[N(x[0],999),Math.round((+x[1]||0)*100)/100,N(x[2],99)];}
+  c.day.otips={};for(const [m,t] of Object.entries(dy.otips||{})){const mm=N(m,999);if(mm&&Array.isArray(t))c.day.otips[mm]=[0,1].map(i=>Math.max(0,Math.min(30,Math.round(+t[i]||0))));}
   c.pitAssign={};for(const [u,ts] of Object.entries(v.pitAssign||{})){if(!Array.isArray(ts))continue;const a=[...new Set(ts.map(x=>N(x,99999)).filter(Boolean))].slice(0,300);if(a.length)c.pitAssign[String(u).slice(0,80)]=a;}
   const pl=v.playoff;c.playoff=pl&&[2,4,6,8].includes(+pl.n)?{n:+pl.n,al:(Array.isArray(pl.al)?pl.al:[]).slice(0,8).map(x=>Array.isArray(x)?[N(x[0],99999),N(x[1],99999)]:[0,0])}:null;
   return c;
@@ -3226,7 +3242,7 @@ let toastT=null,toastUndo=null,toastAt=0;
 function toast(t,undo){const el=$("toast");el.innerHTML="";const s=document.createElement("span");s.textContent=t;el.appendChild(s);
   toastUndo=undo||null;if(undo){const b=document.createElement("button");b.type="button";b.id="toastUndo";b.textContent="בטל";el.appendChild(b);}
   el.hidden=false;toastAt=Date.now();clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;toastUndo=null;},undo?5500:2800);}
-function buzz(p){try{navigator.vibrate?.(p);}catch(e){}}
+function buzz(p){try{if(navigator.userActivation&&!navigator.userActivation.hasBeenActive)return;navigator.vibrate?.(p);}catch(e){}}
 function scoutName(uid){const p=profileOf(uid);if(uid===S.me)return (p?.nick||S.myName||"אתה")+" (אתה)";if(p?.nick)return p.nick;if(String(uid).startsWith("demo"))return "סקאוטר "+String(uid).slice(4);return S.names[uid]||"סקאוטר";}
 function cleanProfile(p){
   if(!p||typeof p!=="object")return null;
@@ -3266,8 +3282,8 @@ function scoutStats(uid,allRaw,acc){
   const ev=all.filter(r=>(r.ev||"")===curEv());
   const ms=[...new Set(ev.map(r=>r.match))].sort((a,b)=>a-b);
   let streak=0,run=0,prev=null;for(const m of ms){run=prev!=null&&m===prev+1?run+1:1;streak=Math.max(streak,run);prev=m;}
-  const slot=S.demo?null:S.control.assign?.[uid];let assignedPast=0,covered=0;
-  if(slot){const have=new Set(ev.map(r=>r.match+"-"+r.team));for(const m of Object.keys(sched()).map(Number)){if(m>=curMatch())continue;const t=slotTeam(m,slot);if(!t)continue;assignedPast++;if(have.has(m+"-"+t))covered++;}}
+  let assignedPast=0,covered=0;
+  if(!S.demo){const have=new Set(ev.map(r=>r.match+"-"+r.team));for(const m of Object.keys(sched()).map(Number)){if(m>=curMatch())continue;const sl=slotAt(uid,m);if(!sl)continue;const t=slotTeam(m,sl);if(!t)continue;assignedPast++;if(have.has(m+"-"+t))covered++;}}
   const pe=acc?.perScout?.get(uid);
   const s={uid,records:ev.length,life:all.length,unverified:allRaw.filter(r=>(r.ev||"")===curEv()).length-ev.length,notes:ev.filter(r=>realNote(r.notes)).length,clock:ev.filter(r=>!r.noShow&&(r.tipT||[]).length).length,streak,assignedPast,covered,
     kudos:S.demo?(S.demoData.kudos?.[uid]||0):(S.control.kudos?.[uid]||0),acc:pe&&pe.length?mean(pe):null,accN:pe?pe.length:0,last:mx0(allRaw.map(r=>r.ts||0)),ms};
@@ -3336,12 +3352,36 @@ function renderTabs(){
   setHdr();
 }
 /* פס "עכשיו" למנהל: המאץ׳ הנוכחי וארבע נקודות שמתמלאות כשכל סקאוטר שומר */
+/* הודעה מהמנהל: פס בראש המסך עד "הבנתי". נשמר בטלפון מה כבר נקרא */
+let bcLast=0;
+function renderBroadcast(){
+  const m=S.control.day?.msg;const seen=+LS.get("bbz-bcseen",0)||0;
+  const show=!isMgr()&&!S.demo&&m&&m.t&&(m.to==="all"||m.to===S.me)&&m.at>seen&&Date.now()-m.at<3*3600000;
+  $("bcBanner").hidden=!show;if(!show)return;
+  $("bcText").textContent=m.t;
+  if(m.at!==bcLast){bcLast=m.at;buzz([120,80,120]);}
+}
+$("bcOk").addEventListener("click",()=>{const m=S.control.day?.msg;if(m)LS.set("bbz-bcseen",m.at);$("bcBanner").hidden=true;});
+/* התראות כיסוי למנהל: עמדה שלא נשמרה בשני המאצ׳ים האחרונים ברצף */
+function covAlerts(){
+  if(!isMgr()||S.demo)return [];
+  const s=sched(),cur=curMatch();const ms=Object.keys(s).map(Number).filter(m=>m<cur).sort((a,b)=>b-a).slice(0,6);
+  if(ms.length<2)return [];
+  const have=new Set(rawAll().map(r=>r.match+"-"+r.team));const users=slotUsers();const out=[];
+  SLOTS.forEach(([k,l],i)=>{let miss=0;for(const m of ms){const t=s[m][i];if(!t)continue;if(have.has(m+"-"+t))break;miss++;}
+    if(miss>=2)out.push({k,l,miss,own:users.filter(u=>slotAt(u,cur)===k)});});
+  return out;
+}
+function renderCovAlert(){
+  const el=$("covAlert");const a=covAlerts();el.hidden=!a.length;if(!a.length){el.innerHTML="";return;}
+  el.innerHTML=`<span>${a.map(x=>`<b>${x.l}</b>: לא נשמרו ${x.miss} מאצ׳ים ברצף · ${x.own.length?esc(x.own.map(scoutName).join(", ")):"אין סקאוטר בעמדה"}`).join("<br>")}</span><button class="btn" data-go="admin">לשבץ מחליף</button>`;
+}
 function renderNow(){
   const el=$("nowStrip");
   if(!isMgr()){el.hidden=true;return;}
   const cur=curMatch();const t=sched()[cur];el.hidden=false;
   const have=new Set(rawAll().filter(r=>r.match===cur).map(r=>r.team));
-  const assigned=new Set(Object.values(S.control.assign||{}));
+  const assigned=new Set(slotUsers().map(u=>slotAt(u,cur)).filter(Boolean));
   const dot=(i)=>{const tt=t?.[i];const ok=tt&&have.has(tt);return `<span class="sd${ok?" ok":assigned.has(SLOTS[i][0])?" as":""}" title="${SLOTS[i][1]}${ok?" · נסקר":""}"></span>`;};
   el.innerHTML=`<span>מאץ׳</span><b class="num">${cur}</b>${t?`<span class="al">${allyChip("red")}<span class="num">${t[0]||"?"} · ${t[1]||"?"}</span></span><span class="al">${allyChip("blue")}<span class="num">${t[2]||"?"} · ${t[3]||"?"}</span></span>`:'<span class="flat">אין לוח זמנים</span>'}<span class="al" aria-label="מצב סקאוטרים">${[0,1,2,3].map(dot).join("")}</span><span class="tail">לניהול ←</span>`;
 }
@@ -3473,37 +3513,38 @@ function renderRp(){
 function slotTeam(m,slot){const s=sched()[m];if(!s)return 0;const i=SLOTS.findIndex(x=>x[0]===slot);return i<0?0:(s[i]||0);}
 function missingMine(){
   if(isMgr())return [];
-  const slot=S.control.assign?.[S.me];if(!slot)return [];
   const mine=mineMap();const cur=curMatch();
-  return Object.keys(sched()).map(Number).filter(m=>m<cur&&slotTeam(m,slot)&&!mine[rowId(m,slotTeam(m,slot))]).sort((a,b)=>a-b);
+  return Object.keys(sched()).map(Number).filter(m=>{if(m>=cur)return false;const sl=mySlot(m);const t=sl&&slotTeam(m,sl);return t&&!mine[rowId(m,t)];}).sort((a,b)=>a-b);
 }
 /* המאץ׳ הבא שעוד לא סקרת, מהמאץ׳ הנוכחי והלאה */
 function nextTarget(){
-  const slot=S.control.assign?.[S.me];if(!slot)return null;
   const mine=mineMap();const cur=curMatch();
-  const ms=Object.keys(sched()).map(Number).filter(m=>m>=cur&&slotTeam(m,slot)).sort((a,b)=>a-b);
-  for(const m of ms){const t=slotTeam(m,slot);if(!mine[rowId(m,t)])return {m,t};}
+  const ms=Object.keys(sched()).map(Number).filter(m=>m>=cur).sort((a,b)=>a-b);
+  for(const m of ms){const sl=mySlot(m);if(!sl)continue;const t=slotTeam(m,sl);if(t&&!mine[rowId(m,t)])return {m,t};}
   return null;
 }
 function renderMission(){
-  const slot=S.control.assign?.[S.me];const cur=curMatch();
+  const cur=curMatch();
   const tg=nextTarget();
+  const slot=tg?mySlot(tg.m):mySlot(cur);
+  /* במשמרות: עכשיו בהפסקה, והמשמרת הבאה מתחילה בהמשך */
+  const onBreak=!mySlot(cur)&&!!tg&&tg.m>cur;
   const ally=slot?.[0]==="b"?"blue":"red";
   const mine=mineMap();
   const last=Object.values(mine).sort((a,b)=>b.match-a.match||(b.ts||0)-(a.ts||0))[0];
-  const up=[];if(slot&&tg)for(let m=tg.m+1;m<=tg.m+4;m++){const t=slotTeam(m,slot);if(t)up.push(`<button type="button" data-startm="${m}">מאץ׳ ${nm(m)} · ${nm(t)}</button>`);}
+  const up=[];if(tg)for(let m=tg.m+1;m<=tg.m+4;m++){const sl=mySlot(m);const t=sl&&slotTeam(m,sl);if(t)up.push(`<button type="button" data-startm="${m}">מאץ׳ ${nm(m)} · ${nm(t)}</button>`);}
   const miss=missingMine();
   const pendN=Object.keys(S.pending).length;
   const view=!S.canWrite?`<div class="banner err" style="margin:0">יש לך הרשאת צפייה בלבד. בקש מהמנהל הרשאת שותף לפני שמתחילים.</div>`:"";
   $("v-mission").innerHTML=`${view}<div class="panel"><div class="mission">
     ${slot?`<div class="slot"><span class="hex bighex ${ally==="blue"?"b":"r"}">${tg?tg.t:"✓"}</span>
-      <div class="info"><span class="k">העמדה שלך</span><span class="v">${SLOTNAME[slot]}</span><span class="k">${tg?`מאץ׳ ${nm(tg.m)}${tg.m>cur?' · <span class="chip">עוד לא התחיל</span>':""}${teamName(tg.t)?" · "+esc(teamName(tg.t)):""}`:`המאץ׳ הנוכחי ${nm(cur)} · אין עוד מאצ׳ים בלוח שלך`}</span></div></div>
+      <div class="info">${onBreak?`<span class="v">הפסקה 🙂</span><span class="k">המשמרת הבאה שלך מתחילה במאץ׳ ${nm(tg.m)} · ${SLOTNAME[slot]}</span>`:`<span class="k">העמדה שלך</span><span class="v">${SLOTNAME[slot]}</span>`}<span class="k">${tg?`מאץ׳ ${nm(tg.m)}${tg.m>cur?' · <span class="chip">עוד לא התחיל</span>':""}${teamName(tg.t)?" · "+esc(teamName(tg.t)):""}`:`המאץ׳ הנוכחי ${nm(cur)} · אין עוד מאצ׳ים בלוח שלך`}</span></div></div>
       ${tg?`<button class="btn pri big" data-startm="${tg.m}">התחל לסקר את ${tg.t}</button>`:`<button class="btn pri big" data-manual="1">להזנה ידנית</button>`}
       ${up.length?`<div><div class="lbl" style="margin-bottom:6px">בהמשך אצלך</div><div class="upnext">${up.join("")}</div></div>`:""}`
     :`<div class="info"><span class="v">עוד לא שובצת לעמדה</span><span class="k">כשהמנהל ישבץ אותך, הקבוצה שלך תופיע כאן אוטומטית בכל מאץ׳.</span></div><button class="btn pri big" data-manual="1">להזנה ידנית</button>`}
     ${last?`<button class="btn" data-edit="${esc(last.id)}" data-by="${esc(S.me||"")}">עריכת האחרון: מאץ׳ ${nm(last.match)} · ${nm(last.team)}</button>`:""}
   </div></div>
-  ${miss.length?`<div class="panel"><div class="ph"><h2>חסרים אצלך</h2><span class="hint">מאצ׳ים שעברו בלי רשומה</span></div><div class="upnext">${miss.map(m=>`<button type="button" data-startm="${m}">מאץ׳ ${nm(m)} · ${nm(slotTeam(m,slot))}</button>`).join("")}</div></div>`:""}
+  ${miss.length?`<div class="panel"><div class="ph"><h2>חסרים אצלך</h2><span class="hint">מאצ׳ים שעברו בלי רשומה</span></div><div class="upnext">${miss.map(m=>`<button type="button" data-startm="${m}">מאץ׳ ${nm(m)} · ${nm(slotTeam(m,mySlot(m)))}</button>`).join("")}</div></div>`:""}
   <div class="panel"><div class="ph"><h2>איך מסקרים טוב</h2></div>
     <ul class="notes">
       <li>לחץ <b>התחל שעון</b> ברגע שהשופט מתחיל את המאץ׳. פספסת? לחץ <b>הידני התחיל</b> כשהשליטה הידנית מתחילה.</li>
@@ -3518,9 +3559,9 @@ function renderMission(){
 /* ── הרשומות שלי ── */
 function renderMine(){
   const rows=Object.values(mineMap()).sort((a,b)=>b.match-a.match);
-  const miss=missingMine();const slot=S.control.assign?.[S.me];
+  const miss=missingMine();
   $("v-mine").innerHTML=`<div class="panel"><div class="ph"><h2>הרשומות שלי</h2><span class="hint">רק אתה והמנהל רואים אותן · לחיצה פותחת לעריכה</span></div>
-  ${rows.length||miss.length?`<div class="tw"><table><thead><tr><th>מאץ׳</th><th>קבוצה</th><th>ברית</th><th>סך</th><th>היפוכים</th><th>מצב</th></tr></thead><tbody>${miss.map(m=>`<tr class="click" tabindex="0" data-startm="${m}"><td class="num">${m}</td><td>${tm(slotTeam(m,slot))}</td><td>${allyChip(slot[0]==="b"?"blue":"red")}</td><td>—</td><td>—</td><td><span class="chip bad">חסר · לחץ להזנה</span></td></tr>`).join("")}${rows.map(r=>{const p=pts(r);return `<tr class="click" tabindex="0" data-edit="${esc(r.id)}" data-by="${esc(S.me||"")}"><td class="num">${r.match}</td><td>${tm(r.team)}</td><td>${allyChip(r.ally)}</td><td class="num"><b>${r.noShow?"—":p.total}</b></td><td class="num">${p.tips}</td><td>${S.pending[r.id]?'<span class="chip warn">ממתין לשליחה</span>':'<span class="chip good">נשלח</span>'}</td></tr>`;}).join("")}</tbody></table></div>`
+  ${rows.length||miss.length?`<div class="tw"><table><thead><tr><th>מאץ׳</th><th>קבוצה</th><th>ברית</th><th>סך</th><th>היפוכים</th><th>מצב</th></tr></thead><tbody>${miss.map(m=>`<tr class="click" tabindex="0" data-startm="${m}"><td class="num">${m}</td><td>${tm(slotTeam(m,mySlot(m)))}</td><td>${allyChip(mySlot(m)[0]==="b"?"blue":"red")}</td><td>—</td><td>—</td><td><span class="chip bad">חסר · לחץ להזנה</span></td></tr>`).join("")}${rows.map(r=>{const p=pts(r);return `<tr class="click" tabindex="0" data-edit="${esc(r.id)}" data-by="${esc(S.me||"")}"><td class="num">${r.match}</td><td>${tm(r.team)}</td><td>${allyChip(r.ally)}</td><td class="num"><b>${r.noShow?"—":p.total}</b></td><td class="num">${p.tips}</td><td>${S.pending[r.id]?'<span class="chip warn">ממתין לשליחה</span>':'<span class="chip good">נשלח</span>'}</td></tr>`;}).join("")}</tbody></table></div>`
   :`<div class="empty">${HEXSVG}<h3>עוד לא שמרת רשומות</h3><button class="btn pri" data-manual="1">לרשומה הראשונה</button></div>`}</div>`;
 }
 
@@ -3634,7 +3675,7 @@ function loadEntry(id,by){
 let guardKey=null,guardT=null;
 function guard(k){if(guardKey===k){guardKey=null;return true;}guardKey=k;clearTimeout(guardT);guardT=setTimeout(()=>guardKey=null,4000);toast("יש טופס פתוח שלא נשמר. לחץ שוב כדי לעזוב אותו");return false;}
 function startMatch(m){
-  const slot=S.control.assign?.[S.me]||"";const t=slot?slotTeam(m,slot):0;
+  const slot=mySlot(m);const t=slot?slotTeam(m,slot):0;
   const id=t?rowId(m,t):null;
   if(id&&mineMap()[id])return loadEntry(id,S.me);
   if(S.dirty&&+$("fMatch").value===m&&+$("fTeam").value===t&&!S.editId)return go("entry");
@@ -3647,7 +3688,7 @@ function freshForm(m,t,slot){
 }
 function manualEntry(){
   if(S.dirty&&!guard("manual"))return;
-  const slot=S.control.assign?.[S.me]||"";const tg=nextTarget();const m=tg?tg.m:curMatch();
+  const tg=nextTarget();const m=tg?tg.m:curMatch();const slot=mySlot(m);
   freshForm(m,slot?slotTeam(m,slot):0,slot);go("entry");if(!$("fTeam").value)setTimeout(()=>$("fTeam").focus(),50);
 }
 function syncAllyFromSched(){
@@ -3798,18 +3839,26 @@ function fillNext(){
 const allianceCount=n=>n<=10?2:n<=20?4:n<=40?6:8;
 function gauss(){let u=0;while(!u)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());}
 const pickOne=a=>a.length?a[Math.floor(Math.random()*a.length)]:0;
-let projCache={key:"",val:null};
+let projCache={key:"",val:null,at:0},projT=null;
 /* סימולציה של כל משחקי הדירוג: מה ששוחק נלקח מהתוצאה הרשמית, מה שעוד לא שוחק מוגרל לפי הנתונים */
 function projectRanking(){
   const s=sched(),sc=scores(),cur=curMatch();
   const key=allStats()&&statsCache.key+"|"+JSON.stringify(s).length+"|"+JSON.stringify(sc)+"|"+cur+"|"+S.demo;
   if(projCache.key===key)return projCache.val;
+  /* 500 הרצות כבדות בטלפון: כשנכנסות רשומות מהר, מציגים את התוצאה הקודמת ומחשבים שוב כעבור כמה שניות */
+  if(projCache.val&&Date.now()-projCache.at<4000){if(!projT)projT=setTimeout(()=>{projT=null;projCache.at=0;if(S.tab==="quals")renderQuals();},4000);return projCache.val;}
   const st=allStats();const M=new Map(st.A.filter(a=>a.n).map(a=>[a.team,a]));const Rp=st.repl;const get=t=>M.get(t)||Rp;
   const teams=[...new Set(Object.values(s).flat().filter(Boolean))];
   if(teams.length<4){projCache={key,val:null};return null;}
   const by=new Map(allRows().map(r=>[r.match+"-"+r.team,r]));
   const ms=Object.keys(s).map(Number).sort((a,b)=>a-b).filter(m=>s[m].every(Boolean));
   const K=allianceCount(teams.length),SIMS=500;
+  /* מאצ׳ים ששוחקו: נקודות הנחיל וההיפוכים מחושבים פעם אחת, לא בכל הרצה. היפוכים רשמיים מהאתר – אם יש */
+  const OT=S.demo?{}:(S.control.day?.otips||{});const fixed=new Map();
+  for(const m of ms){if(m>=cur)continue;const t=s[m];const al=[t.slice(0,2),t.slice(2,4)];
+    fixed.set(m,al.map((a,side)=>{const rs=a.map(x=>by.get(m+"-"+x));if(!rs.every(Boolean)&&!OT[m])return null;
+      const lp=rs.every(Boolean)?rs.reduce((q,r)=>q+(r.noShow?0:pts(r).lp),0):null;
+      const tips=OT[m]?OT[m][side]:rs.reduce((q,r)=>q+(r.noShow?0:pts(r).tips),0);return {lp,tips};}));}
   const rankSum=new Map(teams.map(t=>[t,0])),top=new Map(teams.map(t=>[t,0])),rpSum=new Map(teams.map(t=>[t,0]));
   for(let i=0;i<SIMS;i++){
     const rp=new Map(teams.map(t=>[t,0])),cnt=new Map(teams.map(t=>[t,0])),pt=new Map(teams.map(t=>[t,0]));
@@ -3817,10 +3866,9 @@ function projectRanking(){
       const t=s[m];const al=[t.slice(0,2),t.slice(2,4)];const v=sc[m];const known=v&&v[0]!=null&&v[1]!=null;
       const res=al.map((a,side)=>{
         const score=known?v[side]:a.reduce((q,x)=>q+Math.max(0,get(x).avgS+get(x).sdEff*gauss()),0);
-        const rs=a.map(x=>by.get(m+"-"+x));
-        let lp,tips;
-        if(m<cur&&rs.every(Boolean)){lp=rs.reduce((q,r)=>q+(r.noShow?0:pts(r).lp),0);tips=rs.reduce((q,r)=>q+(r.noShow?0:pts(r).tips),0);}
-        else{lp=a.reduce((q,x)=>q+pickOne(get(x).lpArr),0);tips=a.reduce((q,x)=>q+pickOne(get(x).tipsArr),0);}
+        const fx=fixed.get(m)?.[side];
+        const lp=fx&&fx.lp!=null?fx.lp:a.reduce((q,x)=>q+pickOne(get(x).lpArr),0);
+        const tips=fx?fx.tips:a.reduce((q,x)=>q+pickOne(get(x).tipsArr),0);
         return {score,lp,tips};});
       for(const side of [0,1]){const me=res[side],op=res[1-side];
         const r=(me.score>op.score?3:me.score===op.score?1:0)+(me.lp>=16)+(me.tips>=4)+(me.tips>=7);
@@ -3831,7 +3879,7 @@ function projectRanking(){
     order.forEach((t,j)=>{rankSum.set(t,rankSum.get(t)+j+1);if(j<K)top.set(t,top.get(t)+1);rpSum.set(t,rpSum.get(t)+avg(rp,t));});
   }
   const val={K,teams:teams.length,list:teams.map(t=>({team:t,rank:rankSum.get(t)/SIMS,pTop:top.get(t)/SIMS,rs:rpSum.get(t)/SIMS})).sort((a,b)=>a.rank-b.rank)};
-  projCache={key,val};return val;
+  projCache={key,val,at:Date.now()};return val;
 }
 function renderQuals(){
   const s=sched(),sc=scores(),cur=curMatch();const st=allStats();const M=new Map(st.A.filter(a=>a.n).map(a=>[a.team,a]));
@@ -3850,6 +3898,7 @@ function renderQuals(){
     return `<tr class="click qrow${m===cur?" us":""}" tabindex="0" data-qm="${m}"><td class="num"><b>${m}</b></td><td>${state}</td><td>${allyChip(red?"red":"blue")}</td><td>${partner?tm(partner):"—"}</td><td><span style="display:inline-flex;gap:6px">${opp.map(tm).join("")}</span></td><td><div style="display:grid;gap:2px">${res}${rp?`<div>${rp}</div>`:""}</div></td></tr>`;
   }).join("");
   const proj=projectRanking();
+  const offR=S.demo?{}:(S.control.day?.ranks||{});const hasOff=Object.keys(offR).length>0;
   const usP=proj?.list.find(x=>x.team===US);
   const usRank=proj?proj.list.indexOf(usP)+1:0;
   $("qualsBody").innerHTML=`
@@ -3861,8 +3910,8 @@ function renderQuals(){
     </div>
     <div class="panel c5">
       <div class="ph"><h2>איפה נסיים בדירוג</h2><span class="hint">${proj?`500 הרצות של כל משחקי הדירוג · ${proj.K} הראשונים יהיו קפטנים`:""}</span></div>
-      ${proj?`${usP?`<div class="us-note"><div>מקום צפוי לנו: <b class="num" style="font-size:22px">${r1(usP.rank)}</b> מתוך ${nm(proj.teams)}</div><div>סיכוי להיות קפטן: <b class="num">${pct(usP.pTop)}</b></div><div class="prob"><i style="background:var(--honey);width:${usP.pTop*100}%"></i></div></div>`:""}
-      <div class="tw" style="margin-top:12px"><table><thead><tr><th>#</th><th>קבוצה</th><th>מקום צפוי</th><th>נקודות דירוג למאץ׳</th><th>סיכוי לקפטן</th></tr></thead><tbody>${proj.list.map((x,i)=>`<tr class="click${x.team===US?" us":""}" tabindex="0" data-team="${x.team}"><td class="rank">${i+1}</td><td>${tm(x.team)}</td><td class="num">${r1(x.rank)}</td><td class="num">${r1(x.rs)}</td><td><div class="totcell"><b>${pct(x.pTop)}</b><div class="bar" style="width:70px"><i class="a" style="width:${x.pTop*100}%"></i></div></div></td></tr>`).join("")}</tbody></table></div>
+      ${proj?`${usP?`<div class="us-note">${offR[US]?`<div>דירוג רשמי עכשיו: <b class="num" style="font-size:22px">${offR[US][0]}</b> · ${nm(offR[US][1])} נקודות דירוג</div>`:""}<div>מקום צפוי לנו: <b class="num" style="font-size:22px">${r1(usP.rank)}</b> מתוך ${nm(proj.teams)}</div><div>סיכוי להיות קפטן: <b class="num">${pct(usP.pTop)}</b></div><div class="prob"><i style="background:var(--honey);width:${usP.pTop*100}%"></i></div></div>`:""}
+      <div class="tw" style="margin-top:12px"><table><thead><tr><th>#</th><th>קבוצה</th>${hasOff?"<th>רשמי</th>":""}<th>מקום צפוי</th><th>נקודות דירוג למאץ׳</th><th>סיכוי לקפטן</th></tr></thead><tbody>${proj.list.map((x,i)=>`<tr class="click${x.team===US?" us":""}" tabindex="0" data-team="${x.team}"><td class="rank">${i+1}</td><td>${tm(x.team)}</td>${hasOff?`<td class="num">${offR[x.team]?offR[x.team][0]:"—"}</td>`:""}<td class="num">${r1(x.rank)}</td><td class="num">${r1(x.rs)}</td><td><div class="totcell"><b>${pct(x.pTop)}</b><div class="bar" style="width:70px"><i class="a" style="width:${x.pTop*100}%"></i></div></div></td></tr>`).join("")}</tbody></table></div>
       <div class="flat" style="margin-top:8px;font-size:13px">מאצ׳ים ששוחקו נלקחים מהניקוד הרשמי. מה שעוד לא שוחק מוגרל לפי מה שהסקאוטרים מדדו.</div>`
       :`<div class="empty">${HEXSVG}<div>החיזוי יופיע כשיהיה לוח זמנים עם לפחות ארבע קבוצות.</div></div>`}
     </div>
@@ -3984,8 +4033,9 @@ function renderAdmin(){
   if(S.me&&!scouts.includes(S.me))scouts.unshift(S.me);
   const counts=uid=>uid===S.me?Object.keys(mineMap()).length:Object.values(S.docs[uid]?.rows||{}).filter(r=>r&&!r.deleted&&String(r.ev||"")===curEv()).length;
   const conflicts=allRows().filter(r=>r.dups>1&&(r.spread>=15||r.tipsDiff)).sort((a,b)=>b.spread-a.spread);
-  const assignOf=u=>S.control.assign?.[u]||"";
-  const slotOwners={};for(const [u,sl] of Object.entries(S.control.assign||{}))if(sl)(slotOwners[sl]=slotOwners[sl]||[]).push(u);
+  const assignOf=u=>slotAt(u,c.cur);
+  const slotOwners={};for(const u of slotUsers()){const sl=slotAt(u,c.cur);if(sl)(slotOwners[sl]=slotOwners[sl]||[]).push(u);}
+  const nextShift=(()=>{const L=(S.control.day?.log||[]).filter(e=>e.f>c.cur);return L.length?Math.min(...L.map(e=>e.f)):0;})();
   const recentMs=c.ms.filter(m=>m>=c.cur-8&&m<=c.cur+2);
   const acc=accuracy();
   const scoreMs=c.ms.filter(m=>m<=c.cur&&m>=c.cur-10).reverse();
@@ -3998,9 +4048,25 @@ function renderAdmin(){
       <div class="row" style="margin-top:10px"><button class="btn${newEvArmed?" armed":""}" data-newev="1">${newEvArmed?"לחץ שוב: תחרות חדשה מאפסת לוח, שיבוץ וניקוד":"תחרות חדשה"}</button></div>
     </div>
     <div class="panel c7">
-      <div class="ph"><h2>הסקאוטרים</h2><span class="hint">מופיעים כאן ברגע שפתחו את הדף</span><span class="right"><button class="btn" data-autoassign="1">שיבוץ אוטומטי</button></span></div>
+      <div class="ph"><h2>הסקאוטרים</h2><span class="hint">מופיעים כאן ברגע שפתחו את הדף</span><span class="right"><button class="btn" data-autoassign="1">שיבוץ אוטומטי במשמרות</button></span></div>
+      ${nextShift?`<div class="flat" style="font-size:13px;margin-bottom:8px">החלפת משמרת הבאה: מאץ׳ ${nm(nextShift)}. שינוי עמדה כאן חל מהמאץ׳ הנוכחי והלאה.</div>`:""}
       <div class="slots">${SLOTS.map(([k,l])=>`<div class="slotc ${k[0]}"><span>${l}</span><b>${slotOwners[k]?.length?esc(slotOwners[k].map(scoutName).join(", ")):"ריק"}</b></div>`).join("")}</div>
       ${scouts.length?`<div class="tw" style="margin-top:12px"><table><thead><tr><th>סקאוטר</th><th>עמדה</th><th>רשומות</th><th>דיוק</th><th>פעילות</th></tr></thead><tbody>${scouts.map(u=>{const d=S.docs[u]||{};const sl=assignOf(u);const clash=sl&&slotOwners[sl]&&slotOwners[sl].length>1;const pe=acc.perScout.get(u);return `<tr><td>${esc(scoutName(u))}</td><td><label class="sr" for="as-${esc(u)}">עמדה של ${esc(scoutName(u))}</label><select class="inp" id="as-${esc(u)}" data-assign="${esc(u)}"><option value="">לא משובץ</option>${SLOTS.map(([k,l])=>`<option value="${k}"${sl===k?" selected":""}>${l}</option>`).join("")}</select>${clash?' <span class="chip warn">כפול</span>':""}</td><td class="num">${counts(u)}</td><td>${pe&&pe.length>=2?`<span class="chip ${Math.abs(mean(pe))>8?"warn":"good"}" title="ממוצע הסטייה מהניקוד הרשמי">${nm((mean(pe)>0?"+":"")+r1(mean(pe)))}</span>`:'<span class="flat">—</span>'}</td><td style="font-size:13px">${d.ts?ago(+d.ts):"—"}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">${HEXSVG}<div>שתף את הדף ברמת שותף. כל סקאוטר שיפתח אותו יופיע כאן.</div></div>`}
+    </div>
+    <div class="panel c5">
+      <div class="ph"><h2>הודעה לסקאוטרים</h2><span class="hint">מופיעה בראש המסך שלהם, עם רטט</span></div>
+      <div class="field"><label for="bcTxt">מה לכתוב</label><input class="inp" id="bcTxt" maxlength="200" style="width:100%" placeholder="למשל: עוברים לפיט אחרי מאץ׳ 12"></div>
+      <div class="row" style="margin-top:8px"><div class="field"><label for="bcTo">למי</label><select class="inp" id="bcTo"><option value="all">לכולם</option>${scouts.filter(u=>u!==S.me).map(u=>`<option value="${esc(u)}">${esc(scoutName(u))}</option>`).join("")}</select></div>
+        <div class="field"><span class="lbl">&nbsp;</span><button class="btn pri" data-bcsend="1">שליחה</button></div>
+        ${S.control.day?.msg?`<div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-bcclear="1">ביטול ההודעה</button></div>`:""}</div>
+      ${S.control.day?.msg?`<div class="flat" style="font-size:13px;margin-top:8px">נשלחה ${ago(S.control.day.msg.at)} ${S.control.day.msg.to==="all"?"לכולם":"ל"+esc(scoutName(S.control.day.msg.to))}: ״${esc(S.control.day.msg.t)}״</div>`:""}
+    </div>
+    <div class="panel c7">
+      <div class="ph"><h2>משיכה מאתר התחרויות</h2><span class="hint">לוח זמנים, ניקוד רשמי, שמות ודירוג – מ־FTCScout, בלי הקלדה</span></div>
+      <div class="row"><div class="field"><label for="ftcCode">קוד התחרות</label><input class="inp" id="ftcCode" maxlength="16" dir="ltr" autocapitalize="characters" autocomplete="off" spellcheck="false" style="width:150px" value="${esc(ftcArm||S.control.day?.ftc?.code||"")}" placeholder="ILNOM1"></div>
+        <div class="field"><span class="lbl">&nbsp;</span><button class="btn pri" data-ftcpull="1">${ftcArm?"לחץ שוב: הלוח יוחלף":"משיכה עכשיו"}</button></div>
+        <div class="field"><span class="lbl">&nbsp;</span><button class="btn${S.control.day?.ftc?.auto?" on":""}" data-ftcauto="1" aria-pressed="${!!S.control.day?.ftc?.auto}">${S.control.day?.ftc?.auto?"✓ ":""}עדכון אוטומטי כל 2 דקות</button></div></div>
+      <div class="flat" style="font-size:13px;margin-top:8px">${S.control.day?.ftc?.at?`נמשך ${ago(S.control.day.ftc.at)} · ${nm(S.control.day.ftc.n||0)} מאצ׳ים בלוח`:"הקוד מופיע בכתובת של התחרות באתר FTCScout. ליגת הצפון: ILNOM1 / ILNOM2."} המאץ׳ הנוכחי מתקדם לבד אחרי כל מאץ׳ ששוחק. עובד רק באתר, לא בארטיפקט.</div>
     </div>
     <div class="panel c7">
       <div class="ph"><h2>כיסוי</h2><span class="hint">מה נסקר ומה חסר במאצ׳ים האחרונים</span>${c.missing?`<span class="chip bad">${c.missing} חסרות</span>`:'<span class="chip good">הכול מכוסה</span>'}</div>
@@ -4048,7 +4114,7 @@ function scoutVsOfficial(m){
 let ctlInflight=0,ctlSeq=0,ctlBusy=Promise.resolve();
 function writeControl(patch,okMsg){
   if(!db||!isMgr()||S.demo){if(S.demo)toast("במצב הדגמה לא נשמר דבר");return;}
-  const next={cur:+S.control.cur||1,event:S.control.event||"",ev:S.control.ev||"",sched:S.control.sched||{},assign:S.control.assign||{},scores:S.control.scores||{},ignore:S.control.ignore||{},kudos:S.control.kudos||{},board:S.control.board||[],boardAt:S.control.boardAt||0,pitAssign:S.control.pitAssign||{},playoff:S.control.playoff||null,struck:S.control.struck||[],...patch};
+  const next={cur:+S.control.cur||1,event:S.control.event||"",ev:S.control.ev||"",sched:S.control.sched||{},assign:S.control.assign||{},scores:S.control.scores||{},ignore:S.control.ignore||{},kudos:S.control.kudos||{},board:S.control.board||[],boardAt:S.control.boardAt||0,pitAssign:S.control.pitAssign||{},playoff:S.control.playoff||null,struck:S.control.struck||[],day:S.control.day||{},...patch};
   next._seq=++ctlSeq;
   S.control=readControl(next);statsCache.key="";render();
   /* בענן: שולחים רק את השדות שהשתנו, כדי לא לדרוס שינוי של מנהל אחר */
@@ -4064,17 +4130,72 @@ function parseSched(txt){
     if(!ok){bad++;badLines.push(i+1);return;}out[n[0]]=teams;});
   return {out,bad,badLines};
 }
+/* ── משיכה מ־FTCScout: לוח זמנים, ניקוד רשמי, היפוכים רשמיים לכל ברית, שמות ודירוג ── */
+const FTC_API="https://api.ftcscout.org/graphql";
+const ftcSeason=()=>{const d=new Date();return d.getMonth()>=7?d.getFullYear():d.getFullYear()-1;};
+let ftcArm="",ftcBusy=false;
+async function ftcPull(code,quiet){
+  code=String(code||"").replace(/[^a-z0-9]/gi,"").toUpperCase().slice(0,16);
+  if(!code){if(!quiet)toast("לכתוב קוד תחרות, למשל ILNOM1");return null;}
+  const season=ftcSeason();
+  const q=`query($s:Int!,$c:String!){eventByCode(season:$s,code:$c){name teams{teamNumber team{name} stats{... on TeamEventStats${season}{rank rp qualMatchesPlayed}}} matches{matchNum tournamentLevel hasBeenPlayed teams{teamNumber alliance station} scores{... on MatchScores${season}{red{totalPoints tips} blue{totalPoints tips}}}}}}`;
+  let d;
+  try{const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),15000);
+    const res=await fetch(FTC_API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({query:q,variables:{s:season,c:code}}),signal:ctl.signal});clearTimeout(to);d=await res.json();}
+  catch(e){if(!quiet)toast("המשיכה נכשלה: אין רשת, או שהאתר חסום כאן (בארטיפקט זה לא עובד)");return null;}
+  const e=d?.data?.eventByCode;if(!e){if(!quiet)toast("לא נמצאה תחרות בקוד "+code+" בעונה "+season);return null;}
+  const POS={RedOne:0,RedTwo:1,BlueOne:2,BlueTwo:3};const sch={},sc={},ot={};let last=0;
+  const cl=(x,mx)=>Math.max(0,Math.min(mx,Math.round(+x||0)));
+  for(const m of e.matches||[]){if(m.tournamentLevel!=="Quals")continue;const mm=N(m.matchNum,999);if(!mm)continue;
+    const a=[0,0,0,0];for(const t of m.teams||[]){const p=POS[(t.alliance||"")+(t.station||"")];if(p!=null)a[p]=N(t.teamNumber,99999);}
+    if(a.every(Boolean)&&new Set(a).size===4)sch[mm]=a;
+    const s=m.scores;if(m.hasBeenPlayed&&s&&s.red&&s.blue){sc[mm]=[cl(s.red.totalPoints,999),cl(s.blue.totalPoints,999)];ot[mm]=[cl(s.red.tips,30),cl(s.blue.tips,30)];last=Math.max(last,mm);}}
+  const ranks={};for(const t of e.teams||[]){const n=N(t.teamNumber,99999);const st=t.stats;if(n&&st&&N(st.rank,999))ranks[n]=[N(st.rank,999),Math.round((+st.rp||0)*100)/100,N(st.qualMatchesPlayed,99)];}
+  const names=(e.teams||[]).map(t=>[N(t.teamNumber,99999),String(t.team?.name||"").replace(STRIP,"").replace(/[<>]/g,"").trim().slice(0,40)]).filter(x=>x[0]&&x[1]);
+  return {code,name:String(e.name||"").replace(STRIP,"").slice(0,60),sch,sc,ot,ranks,last,names};
+}
+async function ftcSync(code,auto){
+  if(!isMgr()||S.demo||ftcBusy)return;ftcBusy=true;
+  try{
+    const r=await ftcPull(code,auto);if(!r)return;
+    const old=sched();const gone=Object.keys(old).filter(m=>!(m in r.sch));
+    let sch=old;
+    if(Object.keys(r.sch).length){
+      if(auto)sch={...old,...r.sch}; /* עדכון אוטומטי לא מוחק מאצ׳ים */
+      else{if(gone.length&&ftcArm!==r.code){ftcArm=r.code;toast(gone.length+" מאצ׳ים שכבר בלוח לא נמצאים באתר ויימחקו. לחץ שוב");renderAdmin();return;}sch=r.sch;}}
+    ftcArm="";
+    const d=S.control.day||{};
+    const patch={sched:sch,scores:{...(S.control.scores||{}),...r.sc},cur:Math.max(curMatch(),r.last?r.last+1:0),
+      day:{...d,ftc:{code:r.code,auto:!!d.ftc?.auto,at:Date.now(),n:Object.keys(sch).length},ranks:Object.keys(r.ranks).length?r.ranks:(d.ranks||{}),otips:{...(d.otips||{}),...r.ot}}};
+    if(!S.control.event&&r.name)patch.event=r.name;
+    const same=JSON.stringify([patch.sched,patch.scores,patch.cur,patch.day.ranks,patch.day.otips])===JSON.stringify([old,S.control.scores||{},curMatch(),d.ranks||{},d.otips||{}]);
+    let nn=0;for(const [n,nm2] of r.names)if(!S.teams[n]?.name&&db){nn++;db.doc("teams/"+n).set({num:n,name:nm2}).catch(()=>{});}
+    if(same&&auto&&!nn)return;
+    writeControl(patch,auto?null:"נמשכו "+Object.keys(r.sch).length+" מאצ׳ים, "+Object.keys(r.sc).length+" תוצאות"+(nn?" ו־"+nn+" שמות":"")+" מ־"+r.code);
+  }finally{ftcBusy=false;}
+}
+setInterval(()=>{const f=S.control?.day?.ftc;if(isMgr()&&!S.demo&&f?.auto&&f.code&&navigator.onLine!==false)ftcSync(f.code,true);},120000);
+/* שיבוץ אוטומטי: עד 4 – כולם עובדים. יותר מ־4 – משמרות של 6 מאצ׳ים, ארבעה עובדים והשאר בהפסקה, בסבב */
+const SHIFT=6;
 function autoAssign(){
+  const cur=curMatch();const ms=Object.keys(sched()).map(Number);const end=Math.max(cur,...ms);
   const scouts=Object.keys(S.docs).filter(u=>u!==S.me);
-  const a={};scouts.slice(0,4).forEach((u,i)=>a[u]=SLOTS[i][0]);
-  if(scouts.length<4&&S.me)a[S.me]=SLOTS[scouts.length][0];
-  writeControl({assign:a},"שובצו "+Object.keys(a).length+" סקאוטרים");
+  if(scouts.length<4&&S.me)scouts.push(S.me);
+  if(!scouts.length){toast("אין עדיין סקאוטרים");return;}
+  const N0=scouts.length;
+  let log=(S.control.day?.log||[]).filter(e=>e.f<cur);
+  for(const [u,s] of Object.entries(S.control.assign||{}))if(!log.some(e=>e.u===u))log.unshift({u,s,f:1});
+  const a={};
+  if(N0<=4)scouts.forEach((u,i)=>{log.push({u,s:SLOTS[i][0],f:cur});a[u]=SLOTS[i][0];});
+  else for(let k=0,f=cur;f<=end;k++,f+=SHIFT){const on=new Map();for(let i=0;i<4;i++)on.set(scouts[(k*4+i)%N0],SLOTS[i][0]);
+    for(const u of scouts){const s=on.get(u)||"";log.push({u,s,f});if(k===0&&s)a[u]=s;}}
+  writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}},N0<=4?"שובצו "+N0+" סקאוטרים":"שובצו "+N0+" סקאוטרים במשמרות: ארבעה עובדים והשאר בהפסקה, החלפה כל "+SHIFT+" מאצ׳ים");
 }
 let newEvArmed=false,schedArm="";
 function newEvent(){
   if(!newEvArmed){newEvArmed=true;renderAdmin();setTimeout(()=>{newEvArmed=false;if(S.tab==="admin")renderAdmin();},4000);return;}
   newEvArmed=false;const ev=Date.now().toString(36).slice(-6);
-  writeControl({ev,cur:1,sched:{},scores:{},assign:{},ignore:{},event:"",pitAssign:{},struck:[],playoff:null},"התחילה תחרות חדשה. הרשומות הקודמות נשמרו בצד");
+  writeControl({ev,cur:1,sched:{},scores:{},assign:{},ignore:{},event:"",pitAssign:{},struck:[],playoff:null,day:{}},"התחילה תחרות חדשה. הרשומות הקודמות נשמרו בצד");
 }
 const csvq=v=>{let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
 async function exportCsv(kind){
@@ -4184,7 +4305,7 @@ function renderCrew(){
     ${all.length?`<div class="tw"><table class="stick"><thead><tr><th>#</th><th>סקאוטר</th><th>רמה</th><th>ניסיון</th><th>רשומות</th><th>רצף</th><th>הערות</th><th>כיסוי</th><th>דיוק</th><th>תגים</th><th>פעיל</th><th></th></tr></thead><tbody>${all.map((s,i)=>{const pc=s.lvlTo?Math.round((s.xp-s.lvlFrom)/(s.lvlTo-s.lvlFrom)*100):100;const reg=!!profileOf(s.uid);
       return `<tr class="click${s.uid===S.crewSel?" us":""}" tabindex="0" data-scout="${esc(s.uid)}"><td class="rank">${i+1}</td><td>${who(s.uid,reg?undefined:'<span class="chip warn">לא נרשם</span>')}</td><td><span class="lvl">${esc(s.level)}</span></td><td><div class="totcell"><b>${s.xp}</b><div class="xpbar xpmini"><i style="width:${pc}%"></i></div></div></td><td class="num">${s.records}${s.life>s.records?` <span class="flat">/ ${s.life}</span>`:""}${s.unverified>0?` <span class="chip warn" title="רשומות שלא נספרו: מאץ׳ עתידי, קבוצה שלא שיחקה, כפילות או רשומה שהוצאה">${s.unverified} לא נספרו</span>`:""}</td><td class="num">${s.streak}</td><td class="num">${s.notes}</td><td>${s.assignedPast?`<span class="chip ${s.covered===s.assignedPast?"good":s.covered/s.assignedPast>=.8?"warn":"bad"}">${s.covered}/${s.assignedPast}</span>`:'<span class="flat">—</span>'}</td><td>${s.accN>=2?`<span class="chip ${Math.abs(s.acc)>8?"warn":"good"}">${nm((s.acc>0?"+":"")+r1(s.acc))}</span>`:'<span class="flat">—</span>'}</td><td class="num">${s.badges.length}</td><td style="font-size:13px">${s.last?ago(s.last):"—"}</td><td>${S.demo||s.uid===S.me?"":`<button class="kudo" data-kudos="${esc(s.uid)}" aria-label="שלח כל הכבוד ל${esc(scoutName(s.uid))}">כל הכבוד${s.kudos?` · <span class="num">${s.kudos}</span>`:""}</button>`}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">${HEXSVG}<div>שתף את הדף ברמת שותף. כל מי שנרשם כסקאוטר יופיע כאן.</div></div>`}
   </div>
-  ${sel?`<div class="panel" id="crewDetail"><div class="hero">${avatar(sel.uid,96)}<div style="display:grid;gap:4px;min-width:0"><h2>${esc(scoutName(sel.uid))}</h2>${profileOf(sel.uid)?.motto?`<span class="motto">${esc(profileOf(sel.uid).motto)}</span>`:""}<span class="flat" style="font-size:13px">${S.control.assign?.[sel.uid]?"עמדה "+SLOTNAME[S.control.assign[sel.uid]]:"לא משובץ"}${profileOf(sel.uid)?.joined?" · בצוות מ־"+new Date(profileOf(sel.uid).joined).toLocaleDateString("he-IL"):""}</span></div>${xpBlock(sel)}</div>
+  ${sel?`<div class="panel" id="crewDetail"><div class="hero">${avatar(sel.uid,96)}<div style="display:grid;gap:4px;min-width:0"><h2>${esc(scoutName(sel.uid))}</h2>${profileOf(sel.uid)?.motto?`<span class="motto">${esc(profileOf(sel.uid).motto)}</span>`:""}<span class="flat" style="font-size:13px">${slotAt(sel.uid,curMatch())?"עמדה "+SLOTNAME[slotAt(sel.uid,curMatch())]:"לא משובץ עכשיו"}${profileOf(sel.uid)?.joined?" · בצוות מ־"+new Date(profileOf(sel.uid).joined).toLocaleDateString("he-IL"):""}</span></div>${xpBlock(sel)}</div>
     <div class="minis" style="margin-top:14px">${[["רשומות בתחרות",nm(sel.records)],["סך הכול",nm(sel.life)],["הערות",nm(sel.notes)],["רצף הכי ארוך",nm(sel.streak)],["עם השעון",nm(sel.clock)],["דיוק",sel.accN?nm((sel.acc>0?"+":"")+r1(sel.acc)):"—"]].map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("")}</div>
     <div class="ph" style="margin-top:16px"><h2>המאצ׳ים שסקר</h2></div>
     <div class="matchrow">${sel.rows.filter(r=>(r.ev||"")===curEv()).sort((a,b)=>a.match-b.match).map(r=>`<span class="${r.ally==="blue"?"b":"r"}" title="קבוצה ${r.team}">${r.match} · ${r.team} · ${r.noShow?"—":pts(r).total}</span>`).join("")||'<span class="flat">עוד אין</span>'}</div>
@@ -4207,6 +4328,7 @@ function render(){
   if(!S.role)return;
   renderTabs();
   $("demoBanner").hidden=!S.demo;
+  renderBroadcast();renderCovAlert();
   const pendN=Object.keys(S.pending).length+Object.keys(S.pitPending).length+(S.profilePending?1:0);
   $("failBanner").hidden=!((S.failCount>=2||S.storeFail)&&pendN);
   if(!$("failBanner").hidden)$("failTxt").textContent=S.storeFail?pendN+" רשומות עוד לא נשלחו, והזיכרון בטלפון מלא. לא לסגור ולא לרענן את הדף עד שהן נשלחות.":pendN+" רשומות לא נשלחות כבר כמה ניסיונות"+(S.lastErr?" · "+S.lastErr:"")+". הן שמורות בטלפון.";
@@ -4226,7 +4348,7 @@ function render(){
   else if(S.tab==="team"){if(ae!=="tName")renderTeam();}
   else if(S.tab==="quals"){renderQuals();renderAlly();}
   else if(S.tab==="play"){if(!ae.startsWith("pl-"))renderPlay();renderAlly();}
-  else if(S.tab==="admin"){if(!["schedTxt","evName","simMatch","joinCode","simConnMail","simConnPw"].includes(ae)&&!ae.startsWith("as-")&&!ae.startsWith("sc-")){renderAdmin();renderSimSync();}}
+  else if(S.tab==="admin"){if(!["schedTxt","evName","simMatch","joinCode","simConnMail","simConnPw","bcTxt","ftcCode"].includes(ae)&&document.activeElement?.id!=="bcTo"&&!ae.startsWith("as-")&&!ae.startsWith("sc-")){renderAdmin();renderSimSync();}}
   liveTxt();
   if(isMgr())schedulePublish();
 }
@@ -4281,6 +4403,13 @@ document.addEventListener("click",ev=>{
     if(gone.length&&schedArm!==JSON.stringify(out)){schedArm=JSON.stringify(out);toast(gone.length+" מאצ׳ים שכבר בלוח יימחקו (נשארים "+Object.keys(out).length+"). לחץ שוב לשמירה");return;}
     schedArm="";writeControl({sched:out},"נשמרו "+Object.keys(out).length+" מאצ׳ים"+(bad?" · דולגו שורות "+badLines.slice(0,5).join(", ")+": צריך מספר מאץ׳ וארבע קבוצות שונות":""));return;}
   if(t.dataset.autoassign)return autoAssign();
+  if(t.dataset.bcsend){const txt=($("bcTxt")?.value||"").replace(STRIP,"").trim().slice(0,200);if(!txt){toast("לכתוב קודם את ההודעה");$("bcTxt")?.focus();return;}
+    writeControl({day:{...(S.control.day||{}),msg:{t:txt,at:Date.now(),to:$("bcTo")?.value||"all"}}},"ההודעה נשלחה");return;}
+  if(t.dataset.bcclear){const d={...(S.control.day||{})};delete d.msg;writeControl({day:d},"ההודעה בוטלה");return;}
+  if(t.dataset.ftcpull)return ftcSync($("ftcCode")?.value,false);
+  if(t.dataset.ftcauto){const d=S.control.day||{};const code=String($("ftcCode")?.value||d.ftc?.code||"").replace(/[^a-z0-9]/gi,"").toUpperCase();
+    if(!d.ftc?.auto&&!code){toast("לכתוב קודם את קוד התחרות");return;}
+    writeControl({day:{...d,ftc:{...(d.ftc||{}),code,auto:!d.ftc?.auto}}},!d.ftc?.auto?"עדכון אוטומטי פועל":"עדכון אוטומטי כבוי");if(!d.ftc?.auto)ftcSync(code,true);return;}
   if(t.dataset.newev)return newEvent();
   if(t.dataset.export)return exportCsv(t.dataset.export);
   if(t.dataset.simexp)return simExport(t.dataset.simexp);
@@ -4340,7 +4469,11 @@ document.addEventListener("change",e=>{
     al[+el.dataset.pl][+el.dataset.pk]=v;setPlayoff({n,al});}
   if(el.dataset?.pln&&isMgr()){const P=playoffState();const n=+el.value;setPlayoff({n,al:(P?.al||[]).slice(0,n)});}
   if(el.id==="evName")writeControl({event:el.value.trim().slice(0,60)},"שם התחרות עודכן");
-  if(el.dataset?.assign!=null){const a={...(S.control.assign||{})};const v=el.value;if(v)a[el.dataset.assign]=v;else delete a[el.dataset.assign];writeControl({assign:a});}
+  if(el.dataset?.assign!=null){const u=el.dataset.assign,v=el.value,cur=curMatch();const a={...(S.control.assign||{})};if(v)a[u]=v;else delete a[u];
+    /* חל מהמאץ׳ הנוכחי והלאה: המאצ׳ים שכבר עברו נשארים בשיבוץ הקודם, ולא נספרים כחסרים */
+    let log=(S.control.day?.log||[]).filter(e=>!(e.u===u&&e.f>=cur));
+    if(!log.some(e=>e.u===u)&&S.control.assign?.[u])log.unshift({u,s:S.control.assign[u],f:1});
+    log.push({u,s:v,f:cur});writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}});}
   if(el.dataset?.score){const m=el.dataset.score;const sc={...(S.control.scores||{})};const cur=[...(sc[m]||[null,null])];if(el.value!==""&&+el.value<0){toast("ניקוד לא יכול להיות שלילי");el.value="";}
     cur[+el.dataset.side]=el.value===""?null:Math.max(0,Math.min(999,Math.round(+el.value||0)));
     if(cur[0]==null&&cur[1]==null)delete sc[m];else sc[m]=[cur[0]??null,cur[1]??null];writeControl({scores:sc});}
@@ -4378,6 +4511,7 @@ async function flush(){
     else if(e?.code==="revoked")S.lastErr="הגישה לדף השתנתה";
     else if(e?.code==="permission_denied")S.lastErr="צריך להתחבר מחדש · הרשומות שמורות בטלפון";
     else if(e?.code==="too_big")S.lastErr="המסמך שלך מלא, פנה למנהל";
+    else if(e?.code==="rate_limited")S.lastErr="יותר מדי שמירות בדקה אחת. ננסה שוב לבד";
     else S.lastErr="";
   }finally{
     S.flushing=false;render();
@@ -4416,11 +4550,11 @@ function save(){
   if(S.storeFail)toast("הזיכרון בטלפון מלא – לא לסגור את הדף עד שהרשומה תישלח");
   else toast(navigator.onLine===false?"נשמר בטלפון · יישלח כשתחזור הרשת":"נשמר · מאץ׳ "+match+" קבוצה "+team);
   buzz(30);
-  const slot=F.slot||S.control.assign?.[S.me]||"";
+  const slot=F.slot||mySlot(match);
   S.dirty=false;clearDraft();
   freshForm(0,0,slot);
   flush();
-  if(!isMgr()&&S.control.assign?.[S.me])go("mission");
+  if(!isMgr()&&(mySlot()||nextTarget()))go("mission");
   else{const nm2=match+1;$("fMatch").value=nm2;const nt=slot?slotTeam(nm2,slot):0;$("fTeam").value=nt||"";if(slot&&nt){F.ally=slot[0]==="b"?"blue":"red";}renderForm();if(!nt)$("fTeam").focus();}
 }
 function delEntry(){
@@ -4452,7 +4586,8 @@ function onControl(sn){
   const oldK=S.control.kudos?.[S.me]||0;
   S.control=readControl(v);
   if(!isMgr()&&prevCur!=null&&(S.control.kudos?.[S.me]||0)>oldK){buzz([40,40,40,40,120]);toast("המנהל שלח לך כל הכבוד!");}statsCache.key="";
-  if(!isMgr()&&prevCur!=null&&S.control.cur!==prevCur){const slot=S.control.assign?.[S.me];const t=slot?slotTeam(S.control.cur,slot):0;buzz([80,60,80]);toast("מאץ׳ "+S.control.cur+(t?" · קבוצה "+t+" · "+SLOTNAME[slot]:""));}
+  if(!isMgr()&&prevCur!=null&&S.control.cur!==prevCur){const slot=mySlot(S.control.cur);const was=slotAt(S.me,prevCur);const t=slot?slotTeam(S.control.cur,slot):0;buzz([80,60,80]);
+    if(!slot&&was){const n=nextTarget();toast("הפסקה!"+(n?" חוזרים במאץ׳ "+n.m:""));}else toast("מאץ׳ "+S.control.cur+(t?" · קבוצה "+t+" · "+SLOTNAME[slot]:""));}
   prevCur=S.control.cur;
   render();
 }
@@ -4860,8 +4995,8 @@ function renderSimSync(){
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-joincode="1">שמור קוד</button></div>
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-signout="1">התנתק</button></div></div>
     <div style="margin-top:12px"><div class="lbl">סקאוטרים שהצטרפו ${scoutsCache?"("+scoutsCache.length+")":""}</div>
-    ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span><span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><button class="btn" data-rmscout="${esc(m.uid)}" style="margin-inline-start:auto">${rmArm===m.uid?"לחץ שוב להסרה":"הסר"}</button></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">הצג</button>`}
-    <div class="flat" style="font-size:12px;margin-top:6px">הסרה מוחקת גם את הרשומות שלו, והן כבר לא נספרות בסטטיסטיקה ובסימולטור.</div></div>
+    ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span>${m.role==="removed"?'<span class="chip">הוסר</span>':""}<span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><span style="margin-inline-start:auto;display:flex;gap:6px">${m.role==="removed"?`<button class="btn" data-rstscout="${esc(m.uid)}">להחזיר</button><button class="btn" data-wipescout="${esc(m.uid)}">${rmArm==="w"+m.uid?"לחץ שוב: מחיקה לתמיד":"למחוק גם את הרשומות"}</button>`:`<button class="btn" data-rmscout="${esc(m.uid)}">${rmArm===m.uid?"לחץ שוב להסרה":"הסר"}</button>`}</span></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">הצג</button>`}
+    <div class="flat" style="font-size:12px;margin-top:6px">הסרה חוסמת את הגישה בלבד: הרשומות שכבר נשמרו נשארות ונספרות. מחיקת הרשומות היא צעד נפרד, ואי אפשר לבטל אותה. כדאי גם להחליף את קוד ההצטרפות.</div></div>
     <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור</div>
     <div class="flat" style="font-size:12px;margin-top:4px">קוד אחד עם כל פרטי החיבור החי, כולל הסיסמה של חשבון הקריאה. הסימולטור סורק או מדביק אותו. לא נשמר כאן.</div>
     <div class="row" style="margin-top:6px"><div class="field"><label for="simConnMail">מייל חשבון הקריאה</label><input class="inp" id="simConnMail" type="email" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" autocapitalize="none" spellcheck="false" dir="ltr" style="width:200px"></div>
@@ -4869,7 +5004,7 @@ function renderSimSync(){
     <div class="field"><span class="lbl">&nbsp;</span><button class="btn" data-simconn="1">צור קוד חיבור</button></div></div></div>`;
 }
 document.addEventListener("click",async ev=>{
-  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-gencode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout],[data-simconn],[data-conncopy]");if(!t)return;
+  const t=ev.target.closest("[data-pubnow],[data-joincode],[data-gencode],[data-signout],[data-qr],[data-qrnav],[data-qrclose],[data-loadscouts],[data-rmscout],[data-rstscout],[data-wipescout],[data-simconn],[data-conncopy]");if(!t)return;
   if(t.dataset.pubnow){pubKey="";clearTimeout(pubT);publishNow();}
   /* 10 תווים, אותיות גדולות ומספרים בלי תווים שמתבלבלים (O/0, I/1). הכניסה לא רגישה לאותיות */
   else if(t.dataset.gencode){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";const r=new Uint32Array(10);crypto.getRandomValues(r);
@@ -4881,7 +5016,10 @@ document.addEventListener("click",async ev=>{
     const r=await CLOUD()?.signOut();if(r==="pending")toast("יש רשומות שלא נשלחו. חכה לרשת לפני שמתנתקים");}
   else if(t.dataset.loadscouts){loadScouts();}
   else if(t.dataset.rmscout){const u=t.dataset.rmscout;if(rmArm!==u){rmArm=u;renderSimSync();return;}rmArm="";
-    try{await CLOUD().removeScout(u);toast("הסקאוטר הוסר");loadScouts();}catch(e){toast("ההסרה נכשלה");}}
+    try{await CLOUD().removeScout(u,false);toast("הסקאוטר הוסר. הרשומות שלו נשארו");loadScouts();}catch(e){toast(/set_scout_role|function/i.test(String(e?.cause?.message||e?.message||""))?"צריך לעדכן את מבנה הענן (גרסה 12)":"ההסרה נכשלה");}}
+  else if(t.dataset.rstscout){try{await CLOUD().restoreScout(t.dataset.rstscout);toast("הסקאוטר הוחזר");loadScouts();}catch(e){toast("ההחזרה נכשלה");}}
+  else if(t.dataset.wipescout){const u=t.dataset.wipescout;if(rmArm!=="w"+u){rmArm="w"+u;renderSimSync();return;}rmArm="";
+    try{await CLOUD().removeScout(u,true);toast("הסקאוטר והרשומות שלו נמחקו");loadScouts();}catch(e){toast("המחיקה נכשלה");}}
   else if(t.dataset.qr){qrOpen();}
   else if(t.dataset.qrnav){qrShow(QR.i+ +t.dataset.qrnav);}
   else if(t.dataset.qrclose){$("qrBox")?.remove();}

@@ -101,8 +101,15 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   const ctl=(await q.query("select data from docs where path='control/main'")).rows[0].data;
   ok(ctl.event==="שם חדש"&&ctl.cur===2,"control: field update keeps another manager's change");
   /* הסרת סקאוטר */
+  /* גרסה 12: הסרה רגילה רק חוסמת. הרשומות נשארות */
   await m.evaluate(async uid=>{await window.__CLOUD.removeScout(uid);},sid);
-  ok((await q.query("select count(*)::int n from members where uid=$1",[sid])).rows[0].n===0&&(await q.query("select count(*)::int n from docs where path=$1",["entries/"+sid])).rows[0].n===0,"admin: scout removed with records");
+  ok((await q.query("select role from members where uid=$1",[sid])).rows[0]?.role==="removed"&&(await q.query("select count(*)::int n from docs where path=$1",["entries/"+sid])).rows[0].n===1,"admin: scout removed, records kept");
+  const ls=await m.evaluate(async()=>await window.__CLOUD.listScouts());
+  ok(ls.some(x=>x.uid===sid&&x.role==="removed"),"admin: removed scout listed");
+  await m.evaluate(async uid=>{await window.__CLOUD.restoreScout(uid);},sid);
+  ok((await q.query("select role from members where uid=$1",[sid])).rows[0]?.role==="scout","admin: scout restored");
+  await m.evaluate(async uid=>{await window.__CLOUD.removeScout(uid,true);},sid);
+  ok((await q.query("select count(*)::int n from members where uid=$1",[sid])).rows[0].n===0&&(await q.query("select count(*)::int n from docs where path=$1",["entries/"+sid])).rows[0].n===0,"admin: scout wiped with records");
   /* ── QR ── */
   await m.fill("#simMatch","1");await m.click("[data-qr]");await wait(400);
   await m.addScriptTag({content:jsqr});
