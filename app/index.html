@@ -2927,7 +2927,7 @@ const BADGES=[
   ["ten","עשר במכה","עשר רשומות בתחרות אחת",s=>s.records>=10],
   ["fifty","חצי מאה","חמישים רשומות בסך הכול",s=>s.life>=50],
   ["notes","עין חדה","עשר הערות של לפחות משפט",s=>s.notes>=10],
-  ["clock","שעון שוויצרי","חמישה מאצ׳ים עם זמני היפוך",s=>s.clock>=5],
+  ["clock","שעון שוויצרי","חמישה מאצ׳ים עם השעון",s=>s.clock>=5],
   ["streak","על הגל","חמישה מאצ׳ים ברצף",s=>s.streak>=5],
   ["cover","לא מפספס","כל המאצ׳ים בעמדה, לפחות חמישה",s=>s.assignedPast>=5&&s.covered===s.assignedPast],
   ["kudos","כוכב המנהל","קיבל כל הכבוד מהמנהל",s=>s.kudos>=1],
@@ -3357,6 +3357,8 @@ function verifiedRows(all){
   }
   return V;
 }
+/* מאץ׳ עם השעון: בטופס הישן זמני היפוך, בטופס החדש (גרסה 13) זמני פגיעות והיפוכים */
+const timed=r=>["tipT","hitT","aHitT","flipT"].some(k=>(r[k]||[]).length>0);
 function scoutStats(uid,allRaw,acc){
   const all=verifiedRows(allRaw);
   const ev=all.filter(r=>(r.ev||"")===curEv());
@@ -3365,7 +3367,7 @@ function scoutStats(uid,allRaw,acc){
   let assignedPast=0,covered=0;
   if(!S.demo){const have=new Set(ev.map(r=>r.match+"-"+r.team));for(const m of Object.keys(sched()).map(Number)){if(m>=curMatch())continue;const sl=slotAt(uid,m);if(!sl)continue;const t=slotTeam(m,sl);if(!t)continue;assignedPast++;if(have.has(m+"-"+t))covered++;}}
   const pe=acc?.perScout?.get(uid);
-  const s={uid,records:ev.length,life:all.length,unverified:allRaw.filter(r=>(r.ev||"")===curEv()).length-ev.length,notes:ev.filter(r=>realNote(r.notes)).length,clock:ev.filter(r=>!r.noShow&&(r.tipT||[]).length).length,streak,assignedPast,covered,
+  const s={uid,records:ev.length,life:all.length,unverified:allRaw.filter(r=>(r.ev||"")===curEv()).length-ev.length,notes:ev.filter(r=>realNote(r.notes)).length,clock:ev.filter(r=>!r.noShow&&timed(r)).length,streak,assignedPast,covered,
     kudos:S.demo?(S.demoData.kudos?.[uid]||0):(S.control.kudos?.[uid]||0),acc:pe&&pe.length?mean(pe):null,accN:pe?pe.length:0,last:mx0(allRaw.map(r=>r.ts||0)),ms};
   s.xp=s.life*10+s.notes*3+s.clock*4+s.kudos*15+s.streak*2;
   let li=0;LEVELS.forEach((l,i)=>{if(s.xp>=l[0])li=i;});
@@ -5116,7 +5118,7 @@ function measuredOf(a){
   if(!a)return null;
   /* קבוצה שרק לא הגיעה: יודעים רק שהיא לא אמינה */
   if(!a.n)return a.noShows?{reliability:mval(0,a.noShows)}:null;
-  const intervals=a.list.map(e=>{const c=cycleOf(e);return c==null?0:Math.max(0,(e.tipT||[]).filter(x=>x>=38&&x<=98).length-1);}).reduce((x,y)=>x+y,0);
+  const intervals=a.list.map(e=>{const c=cycleOf(e);return c==null?0:Math.max(0,(e.fm===2?e.flipT:e.tipT||[]).filter(x=>x>=38&&x<=98).length-1);}).reduce((x,y)=>x+y,0);
   return {cycle_s:mval(a.cycle,a.list.map(cycleOf).filter(x=>x!=null).length,1,conf(intervals,10)),
     tips_per_match:mval(a.tips,a.n),auto_tips:mval(a.aTips,a.n),
     accuracy:mval(a.acc,a.accN,2,conf(a.accShots,30)),shots_per_match:mval(a.shots,a.shotsN,1),
