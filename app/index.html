@@ -5071,12 +5071,12 @@ function pitFormHTML(){
     <div class="block"><h3>על הרובוט</h3>
       <div class="pit-photo">${PF.photo?`<img src="${PF.photo}" alt="תמונה של הרובוט של ${t}"><button type="button" class="btn" data-pphotodel="1">להסיר את התמונה</button>`:""}<label class="btn" for="pitPhoto">📷 ${PF.photo?"תמונה אחרת":"תמונה של הרובוט"}</label><input type="file" id="pitPhoto" accept="image/*" capture="environment" hidden></div>
       <div class="row">${one("drive")}${one("shooters")}</div>${many("intake")}</div>
-    <!-- גרסה 16: הוסרו שאלות שהמאצ׳ים כבר מודדים (יציאה, חניה, היפוכים, תפקיד), שאלות שאף אחד לא משתמש בהן (תוכניות, צד שני, שינוי אוטונומי), ומהירות שכל קבוצה עונה "מהיר". הרשומות הישנות נשמרות -->
-    <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}${noShooter?"":`<div class="ctrs">${num("aBalls")}</div>`}</div>
+    <!-- גרסה 16–17: הוסרו מהירות, טווח, מספר תוכניות, היפוכים בכל המאץ׳ וירי לצד השני. הרשומות הישנות נשמרות -->
+    <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}<div class="ctrs">${tog("aLeave")}${noShooter?"":num("aBalls")}${num("aTips")}${tog("aPark")}${tog("autoAdapt")}</div></div>
     ${noShooter?"":`<div class="block"><h3>ירי</h3><div class="pit-key"><span class="chip warn">⭐ הכי חשוב</span>${one("balls")}</div>
       ${many("zones")}<div class="row">${one("mount")}</div></div>`}
-    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("late")}${tog("lift")}</div></div>
-    <div class="block"><h3>הקבוצה</h3>
+    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("tPark")}${tog("late")}${tog("lift")}</div></div>
+    <div class="block"><h3>הקבוצה</h3><div class="row">${one("role")}</div>
       <div class="field"><label for="pitBreaks">״מה הכי נשבר, נתקע או עוד לא עובד לכם?״</label><input class="inp" id="pitBreaks" maxlength="80" style="width:100%" value="${esc(PF.breaks||"")}"></div></div>
     <details class="block" id="pitMore" ${S.pitMore?"open":""}><summary><b>עוד שאלות</b> <span class="flat">(אם יש להם עוד זמן)</span></summary>
       <div class="row">${one("side")}</div><div class="ctrs">${num("cap")}</div>

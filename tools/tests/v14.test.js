@@ -30,7 +30,7 @@ function png(w,h){
   // ── פיט ──
   const p=await page(browser,{me:"s3",owner:false,docs:{"control/main":{cur:1,ev:"",sched,pitAssign:{s3:[90001]}},"entries/s3":{rows:{},ts:1,profile:prof("גל")}}});
   await p.click('[data-mode="pit"]');await p.waitForTimeout(150);await p.click('#v-pit [data-popen="90001"]');await p.waitForTimeout(200);
-  ok(await p.$('#pitBreaks')&&!(await p.$('[data-pn="tipsAll"]'))&&!(await p.$('[data-pb="flipSide"]'))&&!(await p.$('[data-pb="autoAdapt"]')),'pit: breaks question; flip and auto-adapt questions removed (v16)');
+  ok(await p.$('#pitBreaks')&&!(await p.$('[data-pn="tipsAll"]'))&&!(await p.$('[data-pb="flipSide"]'))&&!!(await p.$('[data-pb="autoAdapt"]')),'pit: breaks question; flip questions removed (v16), auto-adapt kept (v17)');
   ok(!(await p.$('[data-p1="shooter"]'))&&!(await p.$('[data-pb="full"]')),'pit: unused questions removed');
   ok((await p.textContent('#pitForm')).includes('לא ידוע'),'pit: "unknown" instead of "not asked"');
   fs.writeFileSync('/tmp/v14-robot.png',png(400,300));

@@ -57,7 +57,7 @@
 | `shoots_other_side_after_tip` | כן או לא – יורים לתא בצד השני אחרי שהכוורת מתהפכת (חדש ב־15.11.2026) |
 | `auto_adaptable` | כן או לא – יכולים לשנות את האוטונומי לפי השותף (חדש ב־15.11.2026) |
 
-**מגרסה 16 של האפליקציה (15.11.2026) לא שואלים בפיט על:** `speed`, `max_range_in`, `auto_leave`, `auto_park`, `auto_tips`, `auto_programs`, `end_park`, `preferred_role`, `tips_per_match`, `shoots_other_side_after_tip`, `auto_adaptable` (וגם לא על `shooter_wheels`, `full_size` מגרסה 14). המפתחות נשארים ונשלחים כרגיל: ערך מרשומה ישנה אם יש, ואחרת `null`. במקומם יש מדידות מהמאצ׳ים: `auto_leave`, `auto_park`, `end_park`, `tips_per_match`, `defense_share`, `cycle_s`, `drive_rating`. `capacity` ו־`intake_side` עדיין נשאלים, אבל רק ב"עוד שאלות", ולכן יהיו `null` לעתים קרובות יותר.
+**מגרסה 16–17 של האפליקציה (15.11.2026) לא שואלים בפיט על:** `speed`, `max_range_in`, `auto_programs`, `tips_per_match`, `shoots_other_side_after_tip` (וגם לא על `shooter_wheels`, `full_size` מגרסה 14). המפתחות נשארים ונשלחים כרגיל: ערך מרשומה ישנה אם יש, ואחרת `null`. במקומם יש מדידות מהמאצ׳ים: `tips_per_match`, `cycle_s`, `drive_rating`. `capacity` ו־`intake_side` עדיין נשאלים, אבל רק ב"עוד שאלות", ולכן יהיו `null` לעתים קרובות יותר.
 
 
 ### `measured` (מהמאצ׳ים)

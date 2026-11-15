@@ -33,7 +33,8 @@ async function page(browser,seed,vp){
   ok(await s.isVisible('.pit-key [data-p1="balls"][data-v="both"]'),'scout: pollen/nectar question shown, marked most important');
   await s.click('[data-p1="balls"][data-v="both"]');
   await s.click('#pitMore summary');await s.click('[data-p1="side"][data-v="front"]');
-  ok(!(await s.$('[data-p1="speed"]'))&&!(await s.$('[data-p1="role"]'))&&!(await s.$('[data-pb="aLeave"]'))&&!(await s.$('[data-pn="aTips"]'))&&!(await s.$('[data-pn="progs"]')),'scout: removed questions are gone (v16)');
+  ok(!(await s.$('[data-p1="speed"]'))&&!(await s.$('[data-p1="range"]'))&&!(await s.$('[data-pn="progs"]'))&&!(await s.$('[data-pn="tipsAll"]'))&&!(await s.$('[data-pb="flipSide"]')),'scout: removed questions are gone (v16)');
+  ok(await s.$('[data-pb="aLeave"]')&&await s.$('[data-pb="aPark"]')&&await s.$('[data-pn="aTips"]')&&await s.$('[data-pb="autoAdapt"]')&&await s.$('[data-pb="tPark"]')&&await s.$('[data-p1="role"]'),'scout: questions that help us are back (v17)');
   await s.click('[data-pm="intake"][data-v="flower"]');await s.click('[data-pm="intake"][data-v="human"]');
   await s.click('[data-pn="cap"] [data-pd="1"]');await s.click('[data-pn="cap"] [data-pd="1"]');
   await s.click('[data-pm="zones"][data-v="mid"]');
