@@ -30,7 +30,7 @@ function png(w,h){
   // ── פיט ──
   const p=await page(browser,{me:"s3",owner:false,docs:{"control/main":{cur:1,ev:"",sched,pitAssign:{s3:[90001]}},"entries/s3":{rows:{},ts:1,profile:prof("גל")}}});
   await p.click('[data-mode="pit"]');await p.waitForTimeout(150);await p.click('#v-pit [data-popen="90001"]');await p.waitForTimeout(200);
-  ok(await p.$('[data-pn="tipsAll"]')&&await p.$('[data-pb="flipSide"]')&&await p.$('[data-pb="autoAdapt"]')&&await p.$('#pitBreaks'),'pit: new questions in the main part');
+  ok(await p.$('#pitBreaks')&&!(await p.$('[data-pn="tipsAll"]'))&&!(await p.$('[data-pb="flipSide"]'))&&!(await p.$('[data-pb="autoAdapt"]')),'pit: breaks question; flip and auto-adapt questions removed (v16)');
   ok(!(await p.$('[data-p1="shooter"]'))&&!(await p.$('[data-pb="full"]')),'pit: unused questions removed');
   ok((await p.textContent('#pitForm')).includes('לא ידוע'),'pit: "unknown" instead of "not asked"');
   fs.writeFileSync('/tmp/v14-robot.png',png(400,300));
@@ -38,18 +38,18 @@ function png(w,h){
   const ph=await T(p,()=>PF.photo);
   ok(ph&&ph.startsWith('data:image/jpeg;base64,')&&ph.length<=9000,'pit: photo shrunk to a small JPEG ('+(ph||"").length+')');
   await p.click('[data-p1="drive"][data-v="tank"]');await p.click('[data-p1="shooters"][data-v="1"]');await p.click('[data-pm="intake"][data-v="floor"]');await p.click('[data-p1="balls"][data-v="both"]');
-  await p.click('[data-pn="tipsAll"] [data-pd="1"]');await p.click('[data-pn="tipsAll"] [data-pd="1"]');await p.click('[data-pb="flipSide"][data-v="yes"]');
+
   await p.fill('#pitBreaks','השרשרת במעלית');
   await p.click('[data-psave]');await p.waitForTimeout(400);
   const rec=await T(p,()=>window.__STORE["entries/s3"].pit.p90001);
-  ok(rec&&rec.photo&&rec.breaks==="השרשרת במעלית"&&rec.tipsAll===2&&rec.flipSide===true,'pit: answers, note and photo saved');
+  ok(rec&&rec.photo&&rec.breaks==="השרשרת במעלית",'pit: answers, note and photo saved');
   ok(p.errs.length===0,'pit: no JS errors '+p.errs.join('|'));
   // אצל המנהל: תמונה וסיכום, וייצוא לסימולטור
   const m=await page(browser,{me:"mgr",owner:true,docs:{"control/main":{cur:1,ev:"",sched},"entries/s3":JSON.parse(JSON.stringify(await T(p,()=>window.__STORE["entries/s3"]))),"entries/s1":{rows:{},ts:1,profile:prof("נועה")}}},{width:1280,height:900});
   await m.click('#tab-pit');await m.waitForTimeout(300);await m.click('#v-pit tr[data-popen="90001"] td');await m.waitForTimeout(200);
   ok(await m.$('#pitSummary img.pit-img')&&(await m.textContent('#pitSummary')).includes('השרשרת במעלית'),'manager: photo and what breaks shown');
   const dc=await T(m,()=>declaredOf(90001));
-  ok(dc.tips_per_match===2&&dc.shoots_other_side_after_tip===true&&dc.auto_adaptable===null,'export: new declared fields');
+  ok('tips_per_match' in dc&&dc.tips_per_match===null&&dc.shoots_other_side_after_tip===null&&dc.auto_adaptable===null,'export: keys of removed questions stay, as null');
   // ── גיבוי בקוד מהסקאוטר ──
   const rows={"m1-t90001":{match:1,team:90001,ev:"",ts:Date.now()-1000,fm:2,tFlip:2,shotsHit:3,sv:true},"m2-t90005":{match:2,team:90005,ev:"",ts:Date.now()-500,fm:2,aLeave:true}};
   const sc=await page(browser,{me:"s1",owner:false,docs:{"control/main":{cur:3,ev:"",sched},"entries/s1":{rows:{},ts:1,profile:prof("נועה")}}});

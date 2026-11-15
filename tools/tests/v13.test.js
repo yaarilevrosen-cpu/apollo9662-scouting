@@ -21,7 +21,7 @@ const R=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-5000,fm:2,sv:true,...x});
   const browser=await chromium.launch();
   const sched={1:[9662,90001,90002,90003],2:[90001,90002,90003,9662],3:[9662,90004,90005,90006]};
   // ── קרדיט: 3 היפוכים לברית האדומה, 6 פגיעות ל־9662 ו־2 לשותף ──
-  const rowsA={"m1-t9662":R(1,9662,{aFlip:1,aHit:4,tFlip:2,shotsHit:6,shotsMiss:2,hitT:[40,40.5,41,60,60.4,61],flipT:[42,62],fBalls:6,bonus:1,cell:0,nectHive:true,tags:["fastCycle"]}),
+  const rowsA={"m1-t9662":R(1,9662,{aFlip:1,aHit:4,tFlip:2,shotsHit:6,shotsMiss:2,hitT:[40,40.5,41,60,60.4,61],flipT:[42,62],fBalls:6,bonus:1,cell:0,nectHive:true,tags:["pin","fastCycle"]}),
     "m1-t90001":R(1,90001,{aFlip:1,aHit:0,tFlip:2,shotsHit:2,tags:["pin"]}),
     "m1-t90002":R(1,90002,{aFlip:0,tFlip:1,shotsHit:5}),"m1-t90003":R(1,90003,{noShow:true})};
   const pit={p9662:{team:9662,ev:"",ts:Date.now()-9000,starts:["B"],balls:"pollen",zones:["mid"],intake:["floor"],set:["starts","balls","zones","intake","drive","shooters"],drive:"tank",shooters:"1"},
@@ -36,7 +36,7 @@ const R=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-5000,fm:2,sv:true,...x});
   ok(await T(m,()=>{S.control=readControl({...S.control,day:{otips:{1:[5,1]}}});return Math.abs(allRows().find(x=>x.match===1&&x.team===9662).tTips-3)<1e-9;}),'credit: official alliance tips replace the scouted teleop count');
   const me=await T(m,()=>measuredOf(allStats().A.find(a=>a.team===9662)));
   ok(me.volley_cycle_s&&me.volley_cycle_s.value===20&&me.balls_per_volley.value===3,'export: volley cycle and balls per volley '+JSON.stringify([me.volley_cycle_s,me.balls_per_volley]));
-  ok(me.nectar_hive.value===1&&me.flower_balls.value===6&&me.tags.fastCycle.value===1,'export: nectar, flower and tags');
+  ok(me.nectar_hive.value===1&&me.flower_balls.value===6&&me.tags.pin.value===1&&!("fastCycle" in me.tags),'export: nectar, flower and tags (removed tags not sent)');
   ok(me.minor_fouls&&me.breakdown_share&&me.disconnect_share&&me.points_sd===null,'export: fouls, breakdowns, disconnects');
   // התאמה ודף מאץ׳
   ok(await T(m,()=>compat(90001).some(x=>x[1].includes("אותה עמדת פתיחה"))&&compat(90001).some(x=>x[1]==="משלימה נקטר")),'compat: same start and nectar complement');

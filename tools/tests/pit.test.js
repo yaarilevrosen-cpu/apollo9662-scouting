@@ -32,7 +32,8 @@ async function page(browser,seed,vp){
   await s.click('[data-p1="shooters"][data-v="1"]');
   ok(await s.isVisible('.pit-key [data-p1="balls"][data-v="both"]'),'scout: pollen/nectar question shown, marked most important');
   await s.click('[data-p1="balls"][data-v="both"]');
-  await s.click('#pitMore summary');await s.click('[data-p1="speed"][data-v="fast"]');
+  await s.click('#pitMore summary');await s.click('[data-p1="side"][data-v="front"]');
+  ok(!(await s.$('[data-p1="speed"]'))&&!(await s.$('[data-p1="role"]'))&&!(await s.$('[data-pb="aLeave"]'))&&!(await s.$('[data-pn="aTips"]'))&&!(await s.$('[data-pn="progs"]')),'scout: removed questions are gone (v16)');
   await s.click('[data-pm="intake"][data-v="flower"]');await s.click('[data-pm="intake"][data-v="human"]');
   await s.click('[data-pn="cap"] [data-pd="1"]');await s.click('[data-pn="cap"] [data-pd="1"]');
   await s.click('[data-pm="zones"][data-v="mid"]');
@@ -44,7 +45,7 @@ async function page(browser,seed,vp){
   const st=await s.evaluate(()=>window.__STORE["entries/s1"]);
   const rec=st.pit&&st.pit.p90001;
   ok(rec&&rec.balls==="both"&&rec.set.includes('balls'),'scout: pollen/nectar answer saved');
-  ok(rec&&rec.drive==="mecanum"&&rec.speed==="fast"&&rec.cap===2&&rec.zones.join()==="mid"&&rec.intake.join()==="flower,human"&&rec.moving===true&&rec.lift===false&&rec.set.includes('lift')&&!rec.set.includes('aim')&&rec.notes==="גאים באוטונומי"&&rec.starts.join()==="A",'scout: record saved to own doc '+JSON.stringify(rec));
+  ok(rec&&rec.drive==="mecanum"&&rec.side==="front"&&rec.cap===2&&rec.zones.join()==="mid"&&rec.intake.join()==="flower,human"&&rec.moving===true&&rec.lift===false&&rec.set.includes('lift')&&!rec.set.includes('aim')&&rec.notes==="גאים באוטונומי"&&rec.starts.join()==="A",'scout: record saved to own doc '+JSON.stringify(rec));
   ok(Object.keys(st.rows).length===0,'scout: match rows untouched');
   ok(await s.isVisible('#pitForm')&&(await s.textContent('#pitForm h2')).includes('90002'),'scout: next assigned team opened automatically');
   // retry
@@ -55,9 +56,9 @@ async function page(browser,seed,vp){
   await s.click('#v-pit [data-popen="90001"]');await s.waitForTimeout(200);
   ok(await s.getAttribute('[data-p1="drive"][data-v="mecanum"]','aria-pressed')==='true','scout: saved values reload');
   // edit and save keeps history
-  await s.click('[data-p1="speed"][data-v="mid"]');await s.click('[data-psave]');await s.waitForTimeout(300);
+  await s.click('[data-p1="side"][data-v="back"]');await s.click('[data-psave]');await s.waitForTimeout(300);
   const st3=await s.evaluate(()=>window.__STORE["entries/s1"].pit.p90001);
-  ok(st3.speed==="mid"&&st3.edits.length===1,'scout: edit keeps history');
+  ok(st3.side==="back"&&st3.edits.length===1,'scout: edit keeps history');
   ok(s.errs.length===0,'scout: no JS errors '+s.errs.join('|'));
   await s.screenshot({path:out+'/scout-after.png',fullPage:true});
   // ── manager ──

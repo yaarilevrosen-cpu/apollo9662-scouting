@@ -98,7 +98,7 @@ const prof=n=>({nick:n,color:1,motto:"",joined:Date.now()});
   ok(msg&&msg.t==="עוברים לפיט"&&msg.to==="all",'broadcast: manager sends');
   const sc=await page(browser,{me:"s2",owner:false,docs:{"control/main":{cur:1,ev:"",day:{msg}},"entries/s2":{rows:{},ts:1,profile:prof("גל")}}});
   await sc.click('[data-mode="match"]');await sc.waitForTimeout(200);
-  ok(!(await sc.isHidden('#bcBanner'))&&(await sc.textContent('#bcText'))==='עוברים לפיט','broadcast: scout sees it');
+  ok(!(await sc.isHidden('#bcBanner'))&&(await sc.textContent('#bcText')).startsWith('עוברים לפיט · '),'broadcast: scout sees it, with its age');
   await sc.click('#bcOk');await sc.waitForTimeout(100);
   ok(await sc.isHidden('#bcBanner'),'broadcast: dismissed');
   await sc.reload();await sc.waitForTimeout(400);

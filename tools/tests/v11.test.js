@@ -82,7 +82,7 @@ const row=(m,t,x)=>({match:m,team:t,ev:"",ts:Date.now()-1000,aLeave:true,shotsHi
   const p=await page(browser,seedP);
   await p.click('[data-mode="pit"]');await p.waitForTimeout(150);
   await p.click('#v-pit [data-popen="90001"]');await p.waitForTimeout(150);
-  await p.click('[data-pn="cap"] [data-pd="1"]');await p.click('[data-pn="cap"] [data-pd="-1"]');
+  await p.click('#pitMore summary');await p.click('[data-pn="cap"] [data-pd="1"]');await p.click('[data-pn="cap"] [data-pd="-1"]');
   ok((await p.textContent('[data-pn="cap"] output'))==='?','pit: minus at the bottom goes back to "?"');
   await p.click('[data-p1="drive"][data-v="tank"]');await p.click('[data-pm="intake"][data-v="floor"]');
   await p.click('[data-p1="shooters"][data-v="0"]');

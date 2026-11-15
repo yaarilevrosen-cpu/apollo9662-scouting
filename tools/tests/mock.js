@@ -11,7 +11,9 @@
   const db={
     doc:p=>({onSnapshot(cb){subs.push({kind:"doc",path:p,cb});setTimeout(()=>cb(snapDoc(p)),5);return()=>{};},
       async set(v){store[p]=JSON.parse(JSON.stringify(v));notify();},
-      async update(v){if(!(p in store))throw {code:"not_found"};deep(store[p],v);notify();}}),
+      async update(v){if(!(p in store))throw {code:"not_found"};deep(store[p],v);notify();},
+      /* כמו בענן: מחליף רק את השדות העליונים שנשלחו. רק כשהבדיקה מבקשת (seed.fields) */
+      ...(seed.fields?{async setFields(v){if(!(p in store))throw {code:"not_found"};Object.assign(store[p],JSON.parse(JSON.stringify(v)));notify();}}:{})}),
     collection:c=>({onSnapshot(cb){subs.push({kind:"col",path:c,cb});setTimeout(()=>cb(snapCol(c)),5);return()=>{};}})
   };
   const user={isOwner:async()=>!!seed.owner,id:async()=>seed.me,name:async()=>seed.name||"",can:async()=>true,profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:"שם "+i}]))};

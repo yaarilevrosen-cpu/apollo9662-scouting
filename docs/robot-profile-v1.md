@@ -57,6 +57,8 @@
 | `shoots_other_side_after_tip` | כן או לא – יורים לתא בצד השני אחרי שהכוורת מתהפכת (חדש ב־15.11.2026) |
 | `auto_adaptable` | כן או לא – יכולים לשנות את האוטונומי לפי השותף (חדש ב־15.11.2026) |
 
+**מגרסה 16 של האפליקציה (15.11.2026) לא שואלים בפיט על:** `speed`, `max_range_in`, `auto_leave`, `auto_park`, `auto_tips`, `auto_programs`, `end_park`, `preferred_role`, `tips_per_match`, `shoots_other_side_after_tip`, `auto_adaptable` (וגם לא על `shooter_wheels`, `full_size` מגרסה 14). המפתחות נשארים ונשלחים כרגיל: ערך מרשומה ישנה אם יש, ואחרת `null`. במקומם יש מדידות מהמאצ׳ים: `auto_leave`, `auto_park`, `end_park`, `tips_per_match`, `defense_share`, `cycle_s`, `drive_rating`. `capacity` ו־`intake_side` עדיין נשאלים, אבל רק ב"עוד שאלות", ולכן יהיו `null` לעתים קרובות יותר.
+
 
 ### `measured` (מהמאצ׳ים)
 
@@ -98,7 +100,7 @@
 | `defended_share` | חלק המאצ׳ים שבהם יריב חסם אותו |
 | `points_when_defended`, `points_when_free` | ממוצע נקודות כשחסמו אותו, וכשלא – בשביל "חלש מול הגנה" |
 | `points_sd`, `points_p25` | פיזור הנקודות בין מאצ׳ים, והרבעון התחתון ("יום רע") |
-| `tags` | אובייקט: לכל תגית, חלק המאצ׳ים שבהם סומנה (`{value, confidence, n}`). התגיות: `pin` מצמיד, `block` חוסם נתיב, `bumpAlly` מתנגש בשותף, `latePark` חונה ברגע האחרון, `fastCycle` מחזור מהיר, `slowIntake` איסוף איטי, `dropsBalls` מפיל כדורים, `stuck` נתקע על כדורים, `passive` כמעט לא עשה כלום |
+| `tags` | אובייקט: לכל תגית, חלק המאצ׳ים שבהם סומנה (`{value, confidence, n}`). התגיות: `pin` מצמיד, `block` חוסם נתיב, `bumpAlly` מתנגש בשותף, `latePark` חונה ברגע האחרון, `fastCycle` מחזור מהיר, `slowIntake` איסוף איטי, `dropsBalls` מפיל כדורים, `stuck` נתקע על כדורים, `passive` כמעט לא עשה כלום. מגרסה 16 לא מסמנים יותר את `fastCycle` ואת `passive` (יש זמן מחזור וניקוד), והם לא נשלחים: מפתח שחסר = לא נמדד |
 
 ## מה עוד אין בגרסה 1
 

@@ -475,7 +475,7 @@ svg .he{font-family:var(--f-body)}
         <div class="row">
           <div class="field"><label for="fMatch">מאץ׳</label><input class="inp num" id="fMatch" type="number" inputmode="numeric" enterkeyhint="done" min="1" max="999"></div>
           <div class="field"><label for="fTeam">קבוצה</label><input class="inp num" id="fTeam" type="number" inputmode="numeric" enterkeyhint="done" min="1" max="99999" list="teamList"></div>
-          <div class="field"><span class="lbl">ברית</span>
+          <div class="field" id="fAllyF"><span class="lbl">ברית</span>
             <div class="seg" id="fAlly"><button type="button" class="r" data-v="red" aria-pressed="true">אדום</button><button type="button" class="b" data-v="blue" aria-pressed="false">כחול</button></div>
           </div>
           <div class="field"><span class="lbl">&nbsp;</span><button type="button" class="btn" id="noShow" aria-pressed="false">לא הגיע למאץ׳</button></div>
@@ -515,7 +515,6 @@ svg .he{font-family:var(--f-body)}
         <div class="ctrs">
           <div class="ctr" data-k="flower" data-fm="1"><span class="lbl">כדורים שלו בפרח שלנו</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בפרח">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בפרח">+</button></div><span class="pv">2 לכל אחד</span></div>
           <div class="ctr" data-k="fBalls" data-fm="2"><span class="lbl">פרחים שהנקטר שלו למעלה: כמה כדורים יש בהם בסך הכול</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בפרחים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדורים בפרחים">+</button></div><span class="pv">כל הכדורים באותם פרחים, גם של אחרים</span></div>
-          <div class="ctr" data-k="fNect" data-fm="2"><span class="lbl">נקטר שהוא הניח בפרחים</span><div class="w"><button type="button" data-d="-1" aria-label="פחות נקטר בפרחים">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד נקטר בפרחים">+</button></div></div>
           <div class="ctr" data-k="bonus"><span class="lbl">נקטר תחתון שלו</span><div class="w"><button type="button" data-d="-1" aria-label="פחות בונוס">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד בונוס">+</button></div><span class="pv">5 לכל פרח</span></div>
           <div class="ctr" data-k="garden"><span class="lbl">כדורים שלו בגינה</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בגינה">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בגינה">+</button></div><span class="pv">1 לכל אחד</span></div>
           <div class="ctr" data-k="cell"><span class="lbl">כדורים שלו שנשארו בתא</span><div class="w"><button type="button" data-d="-1" aria-label="פחות כדורים בתא">−</button><output>0</output><button type="button" class="plus" data-d="1" aria-label="עוד כדור בתא">+</button></div><span class="pv">2 לכל אחד</span></div>
@@ -536,7 +535,7 @@ svg .he{font-family:var(--f-body)}
           <button type="button" class="tog badtog" data-k="lostConn" aria-pressed="false">איבד תקשורת לזמן מה <span class="sw"></span></button>
         </div>
         <div class="row">
-          <div class="field"><span class="lbl">כרטיס</span><div class="seg" id="fCard"><button type="button" data-v="none" aria-pressed="true">אין</button><button type="button" class="y" data-v="yellow" aria-pressed="false">צהוב</button><button type="button" class="x" data-v="red" aria-pressed="false">אדום</button></div></div>
+          <div class="field" data-fm="1"><span class="lbl">כרטיס</span><div class="seg" id="fCard"><button type="button" data-v="none" aria-pressed="true">אין</button><button type="button" class="y" data-v="yellow" aria-pressed="false">צהוב</button><button type="button" class="x" data-v="red" aria-pressed="false">אדום</button></div></div>
           <div class="field"><span class="lbl">איכות נהיגה</span><div class="stars" id="fDrive"></div></div>
         </div>
         <div class="field"><span class="lbl">תגיות (לחיצה מסמנת)</span><div class="qchips" id="qchips"></div></div>
@@ -3006,6 +3005,8 @@ const NUMK={aTips:6,tTips:30,cell:20,flower:30,bonus:4,garden:30,minor:20,major:
 const BOOLK=["aLeave","aPark","tPark","broke","lostConn","defended","wasDef","noShow","clk","nectHive"];
 /* תגיות בלחיצה אחת (גם לסימולטור): מה שקשה למדוד במספרים */
 const TAGS=[["pin","מצמיד"],["block","חוסם נתיב"],["bumpAlly","מתנגש בשותף"],["latePark","חונה ברגע האחרון"],["fastCycle","מחזור מהיר"],["slowIntake","איסוף איטי"],["dropsBalls","מפיל כדורים"],["stuck","נתקע על כדורים"],["passive","כמעט לא עשה כלום"]];
+/* "מחזור מהיר" ו"כמעט לא עשה כלום" כבר נמדדים (זמן מחזור, ניקוד) – לא שואלים עליהם. נשארים בייצוא בשביל רשומות ישנות */
+const TAGS_OLD=new Set(["fastCycle","passive"]);const TAGS_FORM=TAGS.filter(x=>!TAGS_OLD.has(x[0]));
 const TAGK=new Set(TAGS.map(x=>x[0]));
 /* גרסה 13: fm=2 – היפוכים של הברית (aFlip, tFlip) ופגיעות של הרובוט (aHit, shotsHit). הקרדיט לרובוט מחושב לפי חלקו בפגיעות.
    רשומה בלי fm היא מהמבנה הקודם: aTips/tTips הם היפוכים שהרובוט עצמו גרם */
@@ -3104,11 +3105,11 @@ const majority=(g,k)=>{const c=new Map();for(const x of g)if(x[k])c.set(x[k],(c.
 function mergeGroup(g){
   g.sort((a,b)=>(b.ts||0)-(a.ts||0));
   const all=g.length,allBys=g.map(x=>x.by);
-  /* רשומה ישנה וחדשה על אותו רובוט: מאחדים רק את החדשות (בישנות אין היפוכים של הברית) */
-  if(g.some(x=>x.fm===2)&&g.some(x=>x.fm!==2)){const n2=g.filter(x=>x.fm===2||x.noShow);if(n2.length)g=n2;}
-  /* "לא הגיע" לא מתערבב עם רשומה של רובוט ששיחק: מנצח הרוב, ובשוויון מי ששיחק */
+  /* "לא הגיע" לא מתערבב עם רשומה של רובוט ששיחק: מנצח הרוב, ובשוויון מי ששיחק (על כל הרשומות, לפני הסינון לפי מבנה) */
   const played=g.filter(x=>!x.noShow);
   if(played.length&&played.length*2>=all)g=played;else if(played.length)g=g.filter(x=>x.noShow);
+  /* רשומה ישנה וחדשה על אותו רובוט: מאחדים רק את החדשות (בישנות אין היפוכים של הברית) */
+  if(g.some(x=>x.fm===2)&&g.some(x=>x.fm!==2)){const n2=g.filter(x=>x.fm===2);if(n2.length)g=n2;}
   if(g.length===1)return {...g[0],dups:all,spread:0,bys:allBys};
   const o={...g[0]};
   /* חציון בלי עיגול: שני סקאוטרים שאומרים 3 ו־4 נותנים 3.5, לא 4 */
@@ -3127,7 +3128,7 @@ function mergeGroup(g){
   {const c={};for(const x of g)for(const t of x.tags||[])c[t]=(c[t]||0)+1;o.tags=Object.keys(c).filter(t=>c[t]*2>=g.length);}
   o.notes=[...new Set(g.map(x=>x.notes).filter(Boolean))].join(" · ").slice(0,600);
   const tot=g.map(x=>pts(x).total);
-  return {...o,dups:all,spread:Math.max(...tot)-Math.min(...tot),bys:allBys,tipsVals:g.map(x=>pts(x).tips),tipsDiff:new Set(g.map(x=>pts(x).tips)).size>1};
+  return {...o,dups:all,spread:Math.max(...tot)-Math.min(...tot),bys:allBys,...(()=>{const tv=g.map(x=>x.fm===2?(x.aFlip||0)+(x.tFlip||0):pts(x).tips);return {tipsVals:tv,tipsDiff:new Set(tv).size>1};})()};
 }
 const ignKey=r=>r.by+"|"+r.id;
 /* כשיש לוח זמנים: רשומה על מאץ׳ שלא בלוח, או על קבוצה שלא משחקת בו, לא נספרת.
@@ -3160,6 +3161,17 @@ function creditAlliance(rows){
     for(const r of v2){r.aTips=A*share("aHit",r);r.tTips=T*share("shotsHit",r);r.allyFlips=A+T;}
   }
 }
+/* רשומה גולמית במבנה החדש: הקרדיט של הברית מהרשומה המאוחדת, באותו יחס, כדי שכל המסכים יראו אותו מספר.
+   לסקאוטר אין את הרשומות של השותף – נשאר חצי מכל היפוך */
+function credRow(r){
+  if(r.fm!==2||r.noShow||!isMgr())return r;
+  const m=memoTick("allMap",()=>new Map(allRows().map(x=>[x.match+"-"+x.team,x]))).get(r.match+"-"+r.team);
+  if(!m||m.fm!==2||m.noShow)return r;
+  const sc=(own,mf,mt)=>mf>0?mt*(own||0)/mf:mt;
+  return {...r,aTips:sc(r.aFlip,m.aFlip,m.aTips||0),tTips:sc(r.tFlip,m.tFlip,m.tTips||0)};
+}
+/* בעמודת "היפוכים": במבנה החדש – כמה פעמים הכוורת של הברית התהפכה (מספר שלם, כמו שהסקאוטר ספר) */
+const flipsOf=(r,p)=>r.fm===2?(r.aFlip||0)+(r.tFlip||0):p.tips;
 const entries=()=>isMgr()?allRows():Object.values(mineMap());
 const teamName=n=>(S.demo?S.demoData.names[n]:S.teams[n]?.name)||"";
 
@@ -3200,7 +3212,7 @@ function stats(list,noShows){
     lp:mean(P.map(p=>p.lp)),foul:mean(P.map(p=>p.foul)),
     lpArr:P.map(p=>p.lp),tipsArr:P.map(p=>p.tips),
     leave:mean(L.map(e=>e.aLeave?1:0)),aPark:mean(L.map(e=>e.aPark?1:0)),tPark:mean(L.map(e=>e.tPark?1:0)),
-    flower:mean(L.map(e=>(e.flower||0)*2+(e.bonus||0)*5)),garden:mean(L.map(e=>e.garden||0)),
+    flower:mean(L.map(e=>((e.flower||0)+(e.fBalls||0))*2+(e.bonus||0)*5)),garden:mean(L.map(e=>e.garden||0)),
     rel:1-(broke+noShows)/Math.max(1,n+noShows),lost:mean(L.map(e=>e.lostConn?1:0)),
     drive:mean(L.filter(e=>e.drive).map(e=>e.drive)),defRate:mean(L.map(e=>e.defended?1:0)),
     cards:L.filter(e=>e.card&&e.card!=="none").length,cycle:cyc.length?median(cyc):null,
@@ -3217,7 +3229,7 @@ function stats(list,noShows){
 let statsCache={key:"",val:null};
 function allStats(){
   const E=entries();
-  const key=E.length+"|"+E.reduce((s,e)=>s+(e.ts||0)%100000+e.team*7+e.match,0)+"|"+S.demo+"|"+JSON.stringify(scores())+"|"+JSON.stringify(sched())+"|"+Object.keys(S.control.ignore||{}).join();
+  const key=E.length+"|"+E.reduce((s,e)=>s+(e.ts||0)%100000+e.team*7+e.match,0)+"|"+S.demo+"|"+JSON.stringify(scores())+"|"+JSON.stringify(sched())+"|"+Object.keys(S.control.ignore||{}).join()+"|"+(S.demo?"":JSON.stringify(S.control.day?.otips||{}));
   if(statsCache.key===key)return statsCache.val;
   const m=new Map(),ns=new Map();
   for(const e of E){if(e.noShow){ns.set(e.team,(ns.get(e.team)||0)+1);continue;}if(!m.has(e.team))m.set(e.team,[]);m.get(e.team).push(e);}
@@ -3438,11 +3450,12 @@ function renderTabs(){
 let bcLast=0;
 function renderBroadcast(){
   const m=S.control.day?.msg;const seen=+LS.get("bbz-bcseen",0)||0;
-  const show=!isMgr()&&!S.demo&&m&&m.t&&(m.to==="all"||m.to===S.me)&&m.at>seen&&Date.now()-m.at<3*3600000;
+  const show=!isMgr()&&!S.demo&&m&&m.t&&(m.to==="all"||m.to===S.me)&&m.at>seen&&Date.now()-m.at<3600000; /* הודעה ישנה (שעה) כבר לא רלוונטית */
   $("bcBanner").hidden=!show;if(!show)return;
-  $("bcText").textContent=m.t;
+  $("bcText").textContent=m.t+" · "+ago(m.at);
   if(m.at!==bcLast){bcLast=m.at;buzz([120,80,120]);}
 }
+setInterval(()=>{if(S.control?.day?.msg)renderBroadcast();},30000);
 $("bcOk").addEventListener("click",()=>{const m=S.control.day?.msg;if(m)LS.set("bbz-bcseen",m.at);$("bcBanner").hidden=true;});
 /* התראות כיסוי למנהל: עמדה שלא נשמרה בשני המאצ׳ים האחרונים ברצף */
 function covAlerts(){
@@ -3450,13 +3463,16 @@ function covAlerts(){
   const s=sched(),cur=curMatch();const ms=Object.keys(s).map(Number).filter(m=>m<cur).sort((a,b)=>b-a).slice(0,6);
   if(ms.length<2)return [];
   const have=new Set(rawAll().map(r=>r.match+"-"+r.team));const users=slotUsers();const out=[];
-  SLOTS.forEach(([k,l],i)=>{let miss=0;for(const m of ms){const t=s[m][i];if(!t)continue;if(have.has(m+"-"+t))break;if(!users.some(u=>slotAt(u,m)===k))break;miss++;}
-    if(miss>=2)out.push({k,l,miss,own:users.filter(u=>slotAt(u,cur)===k)});});
+  /* מי שפספס: מי שהיה בעמדה במאצ׳ים שלא נשמרו. בנפרד – מי בעמדה עכשיו */
+  SLOTS.forEach(([k,l],i)=>{let miss=0;const who=new Set();for(const m of ms){const t=s[m][i];if(!t)continue;if(have.has(m+"-"+t))break;const on=users.filter(u=>slotAt(u,m)===k);if(!on.length)break;on.forEach(u=>who.add(u));miss++;}
+    if(miss>=2)out.push({k,l,miss,who:[...who],own:users.filter(u=>slotAt(u,cur)===k)});});
   return out;
 }
 function renderCovAlert(){
   const el=$("covAlert");const a=covAlerts();el.hidden=!a.length;if(!a.length){el.innerHTML="";return;}
-  el.innerHTML=`<span>${a.map(x=>`<b>${x.l}</b>: לא נשמרו ${x.miss} מאצ׳ים ברצף · ${x.own.length?esc(x.own.map(scoutName).join(", ")):"אין סקאוטר בעמדה"}`).join("<br>")}</span><button class="btn" data-go="admin">לשבץ מחליף</button>`;
+  const nm2=l=>esc(l.map(scoutName).join(", "));
+  el.innerHTML=`<span>${a.map(x=>{const same=x.own.length&&x.own.every(u=>x.who.includes(u))&&x.who.every(u=>x.own.includes(u));
+    return `<b>${x.l}</b>: לא נשמרו ${x.miss} מאצ׳ים ברצף אצל ${nm2(x.who)}${same?"":" · עכשיו בעמדה: "+(x.own.length?nm2(x.own):"אף אחד")}`;}).join("<br>")}</span><button class="btn" data-go="admin">לשבץ מחליף</button>`;
 }
 function renderNow(){
   const el=$("nowStrip");
@@ -3495,14 +3511,16 @@ function matchSheetHTML(m){
   const k=x=>x.map(y=>M.get(y)).filter(Boolean);
   const our=allianceModel(k(ours),k(opp)),them=allianceModel(k(opp),k(ours));const p=phi((our.mu-them.mu)/Math.hypot(our.sig,them.sig));
   const card=(team,role)=>{const a=M.get(team);const pm=pitMerged(G.get(team));const K=q=>pm?.known.has(q);
-    const starts=[...new Set([...(K("starts")?pm.starts:[]),...(a?.aStartMode?[a.aStartMode]:[])])].join("/")||"?";
-    const balls=K("balls")?pitTxt("balls",pm.balls):"?";
-    const zones=K("zones")?pitTxt("zones",pm.zones):(a?.zoneMode?({near:"קרוב",mid:"אמצע",far:"רחוק"})[a.zoneMode]:"?");
+    /* את עצמנו לא סוקרים בפיט: בלי סימן שאלה, שלא ייראה כמו מידע חסר */
+    const unk=team===US?"—":"?";
+    const starts=[...new Set([...(K("starts")?pm.starts:[]),...(a?.aStartMode?[a.aStartMode]:[])])].join("/")||unk;
+    const balls=K("balls")?pitTxt("balls",pm.balls):unk;
+    const zones=K("zones")?pitTxt("zones",pm.zones):(a?.zoneMode?({near:"קרוב",mid:"אמצע",far:"רחוק"})[a.zoneMode]:unk);
     const tags=a?Object.entries(a.tagShare||{}).filter(([,v])=>v>=.4).map(([k2])=>TAGS.find(x=>x[0]===k2)?.[1]).filter(Boolean):[];
     const note=a?(a.list.filter(e=>e.notes).slice(-1)[0]?.notes||""):"";
     return `<div class="sh-card ${role==="יריב"?(red?"b":"r"):(red?"r":"b")}"><div class="sh-h"><b>${team}</b> <span>${esc(teamName(team))}</span> <span class="chip">${role}</span></div>
       <div class="sh-g"><span>ממוצע</span><b>${a?r1(a.avgS):"—"}</b><span>אוטונומי</span><b>${a?r1(a.auto):"—"}</b><span>היפוכים</span><b>${a?r1(a.tips):"—"}</b><span>אמינות</span><b>${a?pct(a.rel):"—"}</b>
-      <span>מתחילה</span><b>${esc(starts)}</b><span>כדורים</span><b>${esc(balls)}</b><span>יורה מ</span><b>${esc(zones)}</b><span>הגנה</span><b>${a?pct(a.defShare):"—"}</b></div>
+      <span>מתחילה</span><b>${esc(starts)}</b><span>כדורים</span><b>${esc(balls)}</b><span>אזור ירי</span><b>${esc(zones)}</b><span>הגנה</span><b>${a?pct(a.defShare):"—"}</b></div>
       ${tags.length?`<div class="sh-t">${tags.map(x=>`<span class="chip">${esc(x)}</span>`).join(" ")}</div>`:""}${note?`<div class="sh-n">״${esc(note.slice(0,140))}״</div>`:""}</div>`;};
   const warn=partner?compat(partner):[];
   const ask=[];const pp=partner?pitMerged(G.get(partner)):null;
@@ -3599,7 +3617,7 @@ function renderBoard(){
   S.flashed.clear();
 
   const feed=[...rawAll()].sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
-  $("feed").innerHTML=feed.length?feed.map(e=>{const p=pts(e);return `<li class="click" tabindex="0" data-edit="${esc(e.id)}" data-by="${esc(e.by)}">${allyChip(e.ally)}<div style="min-width:0"><div><b class="num">${e.team}</b> ${esc(teamName(e.team))}${e.broke?' <span class="chip bad">תקלה</span>':""}${e.noShow?' <span class="chip">לא הגיע</span>':""}</div><div class="m">מאץ׳ ${nm(e.match)} · <bdi>${esc(scoutName(e.by))}</bdi> · ${ago(e.ts)}</div></div><span class="p">${e.noShow?"—":p.total}</span></li>`;}).join(""):`<li style="grid-template-columns:1fr"><span class="m" style="text-align:center">כאן יופיעו הרשומות ברגע שהן נשמרות</span></li>`;
+  $("feed").innerHTML=feed.length?feed.map(e=>{const p=pts(credRow(e));return `<li class="click" tabindex="0" data-edit="${esc(e.id)}" data-by="${esc(e.by)}">${allyChip(e.ally)}<div style="min-width:0"><div><b class="num">${e.team}</b> ${esc(teamName(e.team))}${e.broke?' <span class="chip bad">תקלה</span>':""}${e.noShow?' <span class="chip">לא הגיע</span>':""}</div><div class="m">מאץ׳ ${nm(e.match)} · <bdi>${esc(scoutName(e.by))}</bdi> · ${ago(e.ts)}</div></div><span class="p">${e.noShow?"—":p.total}</span></li>`;}).join(""):`<li style="grid-template-columns:1fr"><span class="m" style="text-align:center">כאן יופיעו הרשומות ברגע שהן נשמרות</span></li>`;
 
   renderScatter(played);
   renderRp();
@@ -3684,7 +3702,7 @@ function renderMission(){
   const view=!S.canWrite?`<div class="banner err" style="margin:0">יש לך הרשאת צפייה בלבד. לבקש מהמנהל הרשאת שותף לפני שמתחילים.</div>`:"";
   $("v-mission").innerHTML=`${view}<div class="panel"><div class="mission">
     ${slot?`<div class="slot"><span class="hex bighex ${ally==="blue"?"b":"r"}">${tg?tg.t:"✓"}</span>
-      <div class="info">${onBreak?`<span class="v">הפסקה 🙂</span><span class="k">המשמרת הבאה שלך מתחילה במאץ׳ ${nm(tg.m)} · ${SLOTNAME[slot]}</span>`:`<span class="k">העמדה שלך</span><span class="v">${SLOTNAME[slot]}</span>`}<span class="k">${tg?`מאץ׳ ${nm(tg.m)}${tg.m>cur?' · <span class="chip">עוד לא התחיל</span>':""}${teamName(tg.t)?" · "+esc(teamName(tg.t)):""}`:`המאץ׳ הנוכחי ${nm(cur)} · אין עוד מאצ׳ים בלוח שלך`}</span></div></div>
+      <div class="info">${onBreak?`<span class="v">הפסקה 🙂</span><span class="k">המשמרת הבאה שלך מתחילה במאץ׳ ${nm(tg.m)} · ${SLOTNAME[slot]}</span>${(()=>{const pm=pitMine();const n=(pitAssignMap()[S.me]||[]).filter(t=>!pm[t]||pm[t].retry).length;return n?`<button type="button" class="btn" data-mode="pit">בינתיים: ${n===1?"קבוצה אחת":nm(n)+" קבוצות"} לפיט</button>`:"";})()}`:`<span class="k">העמדה שלך</span><span class="v">${SLOTNAME[slot]}</span>`}<span class="k">${tg?`מאץ׳ ${nm(tg.m)}${tg.m>cur?' · <span class="chip">עוד לא התחיל</span>':""}${teamName(tg.t)?" · "+esc(teamName(tg.t)):""}`:`המאץ׳ הנוכחי ${nm(cur)} · אין עוד מאצ׳ים בלוח שלך`}</span></div></div>
       ${tg?`<button class="btn pri big" data-startm="${tg.m}">להתחיל לסקר את ${tg.t}</button>`:`<button class="btn pri big" data-manual="1">להזנה ידנית</button>`}
       ${up.length?`<div><div class="lbl" style="margin-bottom:6px">בהמשך אצלך</div><div class="upnext">${up.join("")}</div></div>`:""}`
     :`<div class="info"><span class="v">עוד לא שובצת לעמדה</span><span class="k">כשהמנהל ישבץ אותך, הקבוצה שלך תופיע כאן אוטומטית בכל מאץ׳.</span></div><button class="btn pri big" data-manual="1">להזנה ידנית</button>`}
@@ -3707,7 +3725,7 @@ function renderMine(){
   const rows=Object.values(mineMap()).sort((a,b)=>b.match-a.match);
   const miss=missingMine();
   $("v-mine").innerHTML=`<div class="panel"><div class="ph"><h2>הרשומות שלי</h2><span class="hint">רק אתה והמנהל רואים אותן · לחיצה פותחת לעריכה</span></div>
-  ${rows.length||miss.length?`<div class="tw"><table><thead><tr><th>מאץ׳</th><th>קבוצה</th><th>ברית</th><th>סך</th><th>היפוכים</th><th>מצב</th></tr></thead><tbody>${miss.map(m=>`<tr class="click" tabindex="0" data-startm="${m}"><td class="num">${m}</td><td>${tm(slotTeam(m,mySlot(m)))}</td><td>${allyChip(mySlot(m)[0]==="b"?"blue":"red")}</td><td>—</td><td>—</td><td><span class="chip bad">חסר · ללחוץ להזנה</span></td></tr>`).join("")}${rows.map(r=>{const p=pts(r);return `<tr class="click" tabindex="0" data-edit="${esc(r.id)}" data-by="${esc(S.me||"")}"><td class="num">${r.match}</td><td>${tm(r.team)}</td><td>${allyChip(r.ally)}</td><td class="num"><b>${r.noShow?"—":p.total}</b></td><td class="num">${p.tips}</td><td>${S.pending[r.id]?'<span class="chip warn">ממתין לשליחה</span>':'<span class="chip good">נשלח</span>'}</td></tr>`;}).join("")}</tbody></table></div>`
+  ${rows.length||miss.length?`<div class="tw"><table><thead><tr><th>מאץ׳</th><th>קבוצה</th><th>ברית</th><th>סך</th><th>היפוכים</th><th>מצב</th></tr></thead><tbody>${miss.map(m=>`<tr class="click" tabindex="0" data-startm="${m}"><td class="num">${m}</td><td>${tm(slotTeam(m,mySlot(m)))}</td><td>${allyChip(mySlot(m)[0]==="b"?"blue":"red")}</td><td>—</td><td>—</td><td><span class="chip bad">חסר · ללחוץ להזנה</span></td></tr>`).join("")}${rows.map(r=>{const p=pts(credRow(r));return `<tr class="click" tabindex="0" data-edit="${esc(r.id)}" data-by="${esc(S.me||"")}"><td class="num">${r.match}</td><td>${tm(r.team)}</td><td>${allyChip(r.ally)}</td><td class="num"><b>${r.noShow?"—":p.total}</b></td><td class="num">${r.noShow?"—":flipsOf(r,p)}</td><td>${S.pending[r.id]?'<span class="chip warn">ממתין לשליחה</span>':'<span class="chip good">נשלח</span>'}</td></tr>`;}).join("")}</tbody></table></div>`
   :`<div class="empty">${HEXSVG}<h3>עוד לא שמרת רשומות</h3><button class="btn pri" data-manual="1">לרשומה הראשונה</button></div>`}</div>
   ${rows.length||Object.keys(S.pitPending).length?`<div class="panel"><div class="ph"><h2>גיבוי בלי רשת</h2><span class="hint">אין רשת כבר הרבה זמן? המנהל סורק את הקוד מהמסך שלך, והרשומות עוברות אליו</span></div>
     <button class="btn" data-bkqr="1">קוד גיבוי למנהל${Object.keys(S.pending).length?` (${Object.keys(S.pending).length} ממתינות)`:""}</button></div>`:""}`;
@@ -3715,7 +3733,7 @@ function renderMine(){
 
 /* ── טופס הזנה ── */
 const BLANK={fm:2,hitT:[],aHitT:[],flipT:[],flipH:[],tags:[],aHit:0,aFlip:0,tFlip:0,fBalls:0,fNect:0,nectHive:false,sv:true,clk:false,aStart:"",zone:"",defT:0,shotsHit:0,shotsMiss:0,aLeave:false,aPark:false,aTips:0,tTips:0,cell:0,defended:false,wasDef:false,flower:0,bonus:0,garden:0,tPark:false,minor:0,major:0,broke:false,lostConn:false,card:"none",drive:0,ally:"red",slot:"",notes:"",tipT:[],noShow:false};
-let F={...BLANK,tipT:[]};
+let F={...BLANK,tipT:[]};let clkSyncArm=false;
 let editBy=null;
 const CLK={on:false,t0:0,timer:null,phase:"off",armed:false,ended:false};
 function clockT(){return CLK.on?(Date.now()-CLK.t0)/1000:0;}
@@ -3736,7 +3754,7 @@ function renderClock(){
   if(ph!==CLK.phase){const was=CLK.phase;CLK.phase=ph;
     if(CLK.on&&was!=="off"&&blk&&PH_BLOCK[was]!==blk&&S.tab==="entry"&&document.activeElement?.id!=="fNotes"){buzz([60,40,60]);document.querySelector(`#form .block[data-phase="${blk}"]`)?.scrollIntoView({block:"start",behavior:"smooth"});}}
   if(CLK.on&&t>=175){stopClock();CLK.ended=true;
-    if(F.fm===2&&!F.cell&&(F.hitT||[]).length){const lastH=(F.flipH||[]).length?F.flipH[F.flipH.length-1]:0;const left=Math.max(0,Math.min(20,(F.hitT.length+(F.aHitT||[]).length)-lastH));if(left){F.cell=left;markDirty();renderForm();toast("בתא נשארו כנראה "+left+" כדורים שלו (אחרי ההיפוך האחרון). אפשר לתקן");}}
+    if(F.fm===2&&!F.cell&&(F.hitT||[]).length){const lastH=(F.flipH||[]).length?F.flipH[F.flipH.length-1]:0;const left=Math.max(0,Math.min(20,(F.hitT.length+(F.aHitT||[]).length)-lastH));if(left){F.cell=left;markDirty();renderForm();toast("בתא נשאר"+(left===1?" כנראה כדור אחד":"ו כנראה "+left+" כדורים")+" שלו (אחרי ההיפוך האחרון). אפשר לתקן");}}
     renderClock();}
 }
 let wake=null;
@@ -3745,7 +3763,7 @@ document.addEventListener("visibilitychange",grabWake);
 function startClock(t0){F.clk=true;CLK.on=true;CLK.ended=false;CLK.t0=t0||Date.now();CLK.armed=false;CLK.phase="off";clearInterval(CLK.timer);CLK.timer=setInterval(renderClock,250);renderClock();grabWake();saveDraft();}
 function stopClock(){CLK.on=false;CLK.armed=false;clearInterval(CLK.timer);renderClock();try{wake?.release();}catch(e){}wake=null;}
 function stars(id,key,from){$(id).innerHTML=Array.from({length:6-from},(_,i)=>i+from).map(v=>`<button type="button" data-star="${key}" data-v="${v}" class="${F[key]===v?"on":""}" aria-pressed="${F[key]===v}" aria-label="נהיגה ${v} מתוך 5">${v}</button>`).join("");}
-function renderTags(){$("qchips").innerHTML=TAGS.map(([k,l])=>`<button type="button" data-tag="${k}" aria-pressed="${(F.tags||[]).includes(k)}">${l}</button>`).join("");}
+function renderTags(){$("qchips").innerHTML=TAGS.filter(x=>!TAGS_OLD.has(x[0])||(F.tags||[]).includes(x[0])).map(([k,l])=>`<button type="button" data-tag="${k}" aria-pressed="${(F.tags||[]).includes(k)}">${l}</button>`).join("");}
 function renderForm(){
   /* מבנה חדש (fm=2) או רשומה ישנה בעריכה: מציגים רק את המונים של אותו מבנה */
   const v2=F.fm===2;document.querySelectorAll("#form [data-fm]").forEach(el=>{el.hidden=(el.dataset.fm==="2")!==v2;});
@@ -3761,7 +3779,9 @@ function renderForm(){
   document.querySelectorAll("#form .fseg").forEach(g=>g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(F[g.dataset.fk])===b.dataset.v)));
   {const n=(F.shotsHit||0)+(F.shotsMiss||0);$("accHint").textContent=n?"פגע ב־"+(F.shotsHit||0)+" מתוך "+n:"עוד לא נספרו יריות";}
   const ae=document.activeElement?.dataset?.star;stars("fDrive","drive",1);if(ae)$("fDrive").querySelector(`[data-v="${F.drive||1}"]`)?.focus();
-  const p=pts(F);
+  {const sc=sched()[+$("fMatch").value];$("fAllyF").hidden=!!(sc&&sc.includes(+$("fTeam").value));}
+  /* במבנה החדש ההיפוכים נספרים לרובוט רק אחרי חלוקה בברית. בטופס: הערכה (חצי מכל היפוך, כמו ברשומה שנשמרה) */
+  const G={...F};if(G.fm===2)soloCredit(G);const p=pts(G);
   $("ptsA").textContent=p.auto+" נק׳";$("ptsT").textContent=p.tele+" נק׳";$("ptsE").textContent=p.end+" נק׳";
   $("ptsF").textContent=p.foul?p.foul+" ליריב":"";
   $("ptsTotal").textContent=F.noShow?"—":p.total;
@@ -3909,7 +3929,7 @@ function renderTeam(){
     <div class="panel c7">
       <div class="ph"><h2>כל הרשומות</h2><span class="hint">לחיצה פותחת לעריכה${isMgr()&&!S.demo?" · ✕ מוציא רשומה מהחישוב":""}</span></div>
       <div class="tw"><table><thead><tr><th>מאץ׳</th><th>ברית</th><th>אוטו׳</th><th>ידני</th><th>סוף</th><th>סך</th><th>היפוכים</th><th>סקאוטר</th><th></th>${isMgr()&&!S.demo?"<th></th>":""}</tr></thead><tbody>
-      ${raws.map(e=>{const p=pts(e);const ig=!!ign[ignKey(e)];return `<tr class="click${ig?" struck":""}" tabindex="0" data-edit="${esc(e.id)}" data-by="${esc(e.by)}"><td class="num">${e.match}</td><td>${allyChip(e.ally)}</td><td class="num">${p.auto}</td><td class="num">${p.tele}</td><td class="num">${p.end}</td><td class="num"><b>${e.noShow?"—":p.total}</b></td><td class="num">${p.tips}</td><td style="font-size:13px">${esc(scoutName(e.by))}</td><td>${e.noShow?'<span class="chip">לא הגיע</span>':""}${e.broke?'<span class="chip bad">תקלה</span>':""}${e.card&&e.card!=="none"?` <span class="chip ${e.card==="red"?"bad":"warn"}">${e.card==="red"?"אדום":"צהוב"}</span>`:""}</td>${isMgr()&&!S.demo?`<td><button class="x" data-ign="${esc(ignKey(e))}" aria-label="${ig?"החזר לחישוב":"הוצא מהחישוב"}">${ig?"↺":"✕"}</button></td>`:""}</tr>`;}).join("")}
+      ${raws.map(e=>{const p=pts(credRow(e));const ig=!!ign[ignKey(e)];return `<tr class="click${ig?" struck":""}" tabindex="0" data-edit="${esc(e.id)}" data-by="${esc(e.by)}"><td class="num">${e.match}</td><td>${allyChip(e.ally)}</td><td class="num">${p.auto}</td><td class="num">${p.tele}</td><td class="num">${p.end}</td><td class="num"><b>${e.noShow?"—":p.total}</b></td><td class="num">${e.noShow?"—":flipsOf(e,p)}</td><td style="font-size:13px">${esc(scoutName(e.by))}</td><td>${e.noShow?'<span class="chip">לא הגיע</span>':""}${e.broke?'<span class="chip bad">תקלה</span>':""}${e.card&&e.card!=="none"?` <span class="chip ${e.card==="red"?"bad":"warn"}">${e.card==="red"?"אדום":"צהוב"}</span>`:""}</td>${isMgr()&&!S.demo?`<td><button class="x" data-ign="${esc(ignKey(e))}" aria-label="${ig?"החזר לחישוב":"הוצא מהחישוב"}">${ig?"↺":"✕"}</button></td>`:""}</tr>`;}).join("")}
       </tbody></table></div>
     </div>
     <div class="panel c5">
@@ -4010,7 +4030,7 @@ let projCache={key:"",val:null,at:0},projT=null;
 /* סימולציה של כל משחקי הדירוג: מה ששוחק נלקח מהתוצאה הרשמית, מה שעוד לא שוחק מוגרל לפי הנתונים */
 function projectRanking(){
   const s=sched(),sc=scores(),cur=curMatch();
-  const key=allStats()&&statsCache.key+"|"+JSON.stringify(s).length+"|"+JSON.stringify(sc)+"|"+cur+"|"+S.demo;
+  const key=allStats()&&statsCache.key+"|"+JSON.stringify(s).length+"|"+JSON.stringify(sc)+"|"+JSON.stringify(S.demo?{}:S.control.day?.otips||{})+"|"+cur+"|"+S.demo;
   if(projCache.key===key)return projCache.val;
   /* 500 הרצות כבדות בטלפון: כשנכנסות רשומות מהר, מציגים את התוצאה הקודמת ומחשבים שוב כעבור כמה שניות */
   const sk=JSON.stringify(s).length+"|"+S.demo+"|"+curEv();
@@ -4220,6 +4240,7 @@ function renderAdmin(){
       <div class="ph"><h2>הסקאוטרים</h2><span class="hint">מופיעים כאן ברגע שפתחו את הדף</span><span class="right"><button class="btn" data-autoassign="1">שיבוץ אוטומטי במשמרות</button></span></div>
       ${nextShift?`<div class="flat" style="font-size:13px;margin-bottom:8px">החלפת משמרת הבאה: מאץ׳ ${nm(nextShift)}. שינוי עמדה כאן חל מהמאץ׳ הנוכחי והלאה.</div>`:""}
       <div class="slots">${SLOTS.map(([k,l])=>`<div class="slotc ${k[0]}"><span>${l}</span><b>${slotOwners[k]?.length?esc(slotOwners[k].map(scoutName).join(", ")):"ריק"}</b></div>`).join("")}</div>
+      ${planHTML()}
       ${scouts.length?`<div class="tw" style="margin-top:12px"><table><thead><tr><th>סקאוטר</th><th>עמדה</th><th>רשומות</th><th>דיוק</th><th>פעילות</th></tr></thead><tbody>${scouts.map(u=>{const d=S.docs[u]||{};const sl=assignOf(u);const clash=sl&&slotOwners[sl]&&slotOwners[sl].length>1;const pe=acc.perScout.get(u);return `<tr><td>${esc(scoutName(u))}</td><td><label class="sr" for="as-${esc(u)}">עמדה של ${esc(scoutName(u))}</label><select class="inp" id="as-${esc(u)}" data-assign="${esc(u)}"><option value="">לא משובץ</option>${SLOTS.map(([k,l])=>`<option value="${k}"${sl===k?" selected":""}>${l}</option>`).join("")}</select>${clash?' <span class="chip warn">כפול</span>':""}</td><td class="num">${counts(u)}</td><td>${pe&&pe.length>=2?`<span class="chip ${Math.abs(mean(pe))>8?"warn":"good"}" title="ממוצע הסטייה מהניקוד הרשמי">${nm((mean(pe)>0?"+":"")+r1(mean(pe)))}</span>`:'<span class="flat">—</span>'}</td><td style="font-size:13px">${d.ts?ago(+d.ts):"—"}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">${HEXSVG}<div>לשתף את הדף ברמת שותף. כל סקאוטר שיפתח אותו יופיע כאן.</div></div>`}
     </div>
     <div class="panel c5">
@@ -4287,15 +4308,27 @@ function scoutVsOfficial(m){
 }
 /* כתיבת לוח הבקרה: מספר רץ כדי שתמונת מצב ישנה לא תדרוס לחיצות מהירות */
 let ctlInflight=0,ctlSeq=0,ctlBusy=Promise.resolve();
-function writeControl(patch,okMsg){
+/* dayPart: רק החלקים של day שהשתנו. נשלחים במיזוג עמוק, כדי שמכשיר של מנהל אחר עם עותק ישן לא ידרוס "לא לבחור", משמרות או הודעה */
+function writeControl(patch,okMsg,dayPart){
   if(!db||!isMgr()||S.demo){if(S.demo)toast("במצב הדגמה לא נשמר דבר");return;}
   const next={cur:+S.control.cur||1,event:S.control.event||"",ev:S.control.ev||"",sched:S.control.sched||{},assign:S.control.assign||{},scores:S.control.scores||{},ignore:S.control.ignore||{},kudos:S.control.kudos||{},board:S.control.board||[],boardAt:S.control.boardAt||0,pitAssign:S.control.pitAssign||{},playoff:S.control.playoff||null,struck:S.control.struck||[],day:S.control.day||{},...patch};
   next._seq=++ctlSeq;
   S.control=readControl(next);statsCache.key="";render();
   /* בענן: שולחים רק את השדות שהשתנו, כדי לא לדרוס שינוי של מנהל אחר */
   const ref=db.doc("control/main");const fields={...patch,_seq:next._seq};
+  /* day במיזוג: _seq נשלח רק בכתיבה האחרונה, כדי שתמונת ביניים (שדות חדשים, day ישן) לא תתקבל כ"עדכנית".
+     בארטיפקט אין setFields, אבל יש update (מיזוג) – כשרק day משתנה משתמשים בו */
+  const other=Object.keys(patch).filter(k=>k!=="day");const missing=e=>e&&(e.code==="not_found"||e.code==="invalid_argument");
+  const run=()=>{
+    if(S.control._exists===false)return ref.set(next);
+    if(dayPart&&ref.update){
+      if(!other.length)return ref.update({day:dayPart,_seq:next._seq});
+      if(ref.setFields){const f={...fields};delete f.day;delete f._seq;return ref.setFields(f).then(()=>ref.update({day:dayPart,_seq:next._seq}));}
+    }
+    return ref.setFields?ref.setFields(fields):ref.set(next);
+  };
   ctlInflight++;
-  ctlBusy=ctlBusy.then(()=>ref.setFields&&S.control._exists!==false?ref.setFields(fields).catch(e=>e&&e.code==="not_found"?ref.set(next):Promise.reject(e)):ref.set(next))
+  ctlBusy=ctlBusy.then(()=>run().catch(e=>missing(e)?ref.set(next):Promise.reject(e)))
     .then(()=>{if(okMsg)toast(okMsg);}).catch(()=>{toast("השמירה נכשלה. לנסות שוב");}).finally(()=>{ctlInflight--;});
 }
 function parseSched(txt){
@@ -4318,8 +4351,8 @@ async function ftcPull(code,quiet,retry){
   try{const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),15000);
     const res=await fetch(FTC_API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({query:q,variables:{s:season,c:code}}),signal:ctl.signal});clearTimeout(to);d=await res.json();}
   catch(e){if(!quiet)toast("המשיכה נכשלה: אין רשת, או שהאתר חסום כאן (בארטיפקט זה לא עובד)");return null;}
-  /* בתחילת עונה האתר עוד לא מכיר את סוגי הנתונים החדשים: מנסים את העונה הקודמת */
-  if(d?.errors&&!d?.data?.eventByCode&&!retry&&/TeamEventStats|MatchScores/.test(JSON.stringify(d.errors)))return ftcPull(code,quiet,season-1);
+  /* בתחילת עונה האתר עוד לא מכיר את סוגי הנתונים החדשים. לא עוברים לעונה הקודמת – זו הייתה מושכת תחרות אחרת עם אותו קוד */
+  if(d?.errors&&!d?.data?.eventByCode&&/TeamEventStats|MatchScores/.test(JSON.stringify(d.errors))){if(!quiet)toast("אתר התוצאות עוד לא מעודכן לעונה "+season+". לנסות שוב בעוד כמה ימים");return null;}
   const e=d?.data?.eventByCode;if(!e){if(!quiet)toast("לא נמצאה תחרות בקוד "+code+" בעונה "+season);return null;}
   const POS={RedOne:0,RedTwo:1,BlueOne:2,BlueTwo:3};const sch={},sc={},ot={};let last=0;
   const cl=(x,mx)=>Math.max(0,Math.min(mx,Math.round(+x||0)));
@@ -4355,31 +4388,53 @@ async function ftcSync(code,auto){
     if(J(scNew)!==J(S.control.scores||{}))patch.scores=scNew;
     if(curNew!==curMatch()&&(other||curNew>curMatch()))patch.cur=curNew;
     const dayCh=J(ranks)!==J(d.ranks||{})||J(otips)!==J(d.otips||{})||!d.ftc||d.ftc.code!==r.code||!auto;
-    if(dayCh)patch.day={...d,ftc:{code:r.code,auto:!!d.ftc?.auto,at:Date.now(),n:Object.keys(sch).length},ranks,otips};
+    let dayPart=null;
+    if(dayCh){dayPart={ftc:{code:r.code,auto:!!d.ftc?.auto,at:Date.now(),n:Object.keys(sch).length},ranks,otips};patch.day={...d,...dayPart};
+      /* מיזוג עמוק לא מוחק מפתחות: אם קבוצה או מאץ׳ נעלמו מהדירוג או מההיפוכים – מחליפים את day כולו */
+      const gone=(o,n)=>Object.keys(o||{}).some(k=>!(k in n));if(gone(d.ranks,ranks)||gone(d.otips,otips))dayPart=null;}
     if((other||!S.control.event)&&r.name)patch.event=r.name;
     if(other){patch.ev=Date.now().toString(36).slice(-6);patch.assign={};patch.ignore={};patch.struck=[];patch.playoff=null;patch.pitAssign={};
-      patch.day={ftc:{code:r.code,auto:!!d.ftc?.auto,at:Date.now(),n:Object.keys(sch).length},ranks,otips};}
+      patch.day={ftc:{code:r.code,auto:!!d.ftc?.auto,at:Date.now(),n:Object.keys(sch).length},ranks,otips};dayPart=null;}
     if(!Object.keys(patch).length){if(!auto)toast("אין שינוי מאז המשיכה הקודמת");return;}
-    writeControl(patch,auto?null:"נמשכו "+Object.keys(r.sch).length+" מאצ׳ים, "+Object.keys(r.sc).length+" תוצאות"+(nn?" ו־"+nn+" שמות":"")+" מ־"+r.code);
+    writeControl(patch,auto?null:"נמשכו "+Object.keys(r.sch).length+" מאצ׳ים, "+Object.keys(r.sc).length+" תוצאות"+(nn?" ו־"+nn+" שמות":"")+" מ־"+r.code,dayPart);
   }finally{ftcBusy=false;}
 }
 setInterval(()=>{const f=S.control?.day?.ftc;if(isMgr()&&!S.demo&&f?.auto&&f.code&&navigator.onLine!==false)ftcSync(f.code,true);},120000);
 /* שיבוץ אוטומטי: עד 4 – כולם עובדים. יותר מ־4 – משמרות של 6 מאצ׳ים, ארבעה עובדים והשאר בהפסקה, בסבב */
 const SHIFT=6;
+/* תוכנית המשמרות: לכל סקאוטר – באילו מאצ׳ים הוא בעמדה */
+function planHTML(){
+  const ms=Object.keys(sched()).map(Number).sort((a,b)=>a-b);const us=slotUsers();if(!ms.length||!us.length)return "";
+  const rows=us.map(u=>{const r=[];let st=null,pv=null,sl=null;for(const m of ms){const x=slotAt(u,m);if(x&&st!==null&&x===sl&&m===pv+1){pv=m;continue;}
+      if(st!==null)r.push([st,pv,sl]);st=x?m:null;pv=m;sl=x;}
+    if(st!==null)r.push([st,pv,sl]);const n=r.reduce((t,[a,b])=>t+b-a+1,0);return {u,r,n};}).sort((a,b)=>(a.r[0]?.[0]||999)-(b.r[0]?.[0]||999));
+  return `<details style="margin-top:10px"><summary><b>תוכנית המשמרות</b> <span class="flat">(מי בעמדה באילו מאצ׳ים)</span></summary><ul class="notes" style="margin-top:8px">${rows.map(x=>`<li><b>${esc(scoutName(x.u))}</b> · ${x.r.length?x.r.map(([a,b,sl])=>`${SLOTNAME[sl]} ${a===b?nm(a):nm(a)+"–"+nm(b)}`).join(" · ")+` <span class="flat">(${x.n===1?"מאץ׳ אחד":nm(x.n)+" מאצ׳ים"})</span>`:"בלי משמרת"}</li>`).join("")}</ul></details>`;
+}
 function autoAssign(){
   const cur=curMatch();const ms=Object.keys(sched()).map(Number);const end=Math.max(cur,...ms);
   const scouts=Object.keys(S.docs).filter(u=>u!==S.me&&!S.removed?.has(u));
   if(scouts.length<4&&S.me)scouts.push(S.me);
   if(!scouts.length){toast("אין עדיין סקאוטרים");return;}
   const N0=scouts.length;
+  /* בלי לוח זמנים אי אפשר לתכנן משמרות: יוצא בלוק אחד, ומי שמעבר לארבעה לא מקבל אף פעם */
+  if(N0>4&&!ms.some(m=>m>=cur)){toast("קודם להכניס את לוח הזמנים (או למשוך מאתר התוצאות), ואז לשבץ במשמרות");return;}
   let log=(S.control.day?.log||[]).filter(e=>e.f<cur);
   for(const [u,s] of Object.entries(S.control.assign||{}))if(!log.some(e=>e.u===u))log.unshift({u,s,f:1});
   const a={};
   if(N0<=4)scouts.forEach((u,i)=>{log.push({u,s:SLOTS[i][0],f:cur});a[u]=SLOTS[i][0];});
-  else for(let k=0,f=cur;f<=end;k++,f+=SHIFT){const on=new Map();for(let i=0;i<4;i++)on.set(scouts[(k*4+i)%N0],SLOTS[i][0]);
-    for(const u of scouts){const s=on.get(u)||"";log.push({u,s,f});if(k===0&&s)a[u]=s;}}
+  else{
+    /* כל בלוק: ארבעה שעבדו הכי מעט; בשוויון – מי שנח בבלוק הקודם. מי שממשיך נשאר באותה עמדה (לא עובר מאדום לכחול באמצע) */
+    const worked=new Map(scouts.map(u=>[u,0]));let prev=new Map();
+    for(let k=0,f=cur;f<=end;k++,f+=SHIFT){
+      const pick=[...scouts].sort((x,y)=>worked.get(x)-worked.get(y)||(prev.has(x)?1:0)-(prev.has(y)?1:0)||scouts.indexOf(x)-scouts.indexOf(y)).slice(0,4);
+      const on=new Map();const free=SLOTS.map(x=>x[0]).filter(sl=>!pick.some(u=>prev.get(u)===sl));
+      for(const u of pick){if(prev.has(u))on.set(u,prev.get(u));}
+      for(const u of pick){if(!on.has(u))on.set(u,free.shift());}
+      for(const u of scouts){const sl=on.get(u)||"";log.push({u,s:sl,f});if(k===0&&sl)a[u]=sl;if(sl)worked.set(u,worked.get(u)+1);}
+      prev=on;}
+  }
   for(const u of slotUsers())if(!scouts.includes(u))log.push({u,s:"",f:cur});
-  writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}},N0<=4?"שובצו "+N0+" סקאוטרים":"שובצו "+N0+" סקאוטרים במשמרות: ארבעה עובדים והשאר בהפסקה, החלפה כל "+SHIFT+" מאצ׳ים");
+  writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}},N0<=4?"שובצו "+N0+" סקאוטרים":"שובצו "+N0+" סקאוטרים במשמרות: ארבעה עובדים והשאר בהפסקה, החלפה כל "+SHIFT+" מאצ׳ים",{log:log.slice(-400)});
 }
 let newEvArmed=false,schedArm="";
 function newEvent(){
@@ -4397,10 +4452,10 @@ async function exportCsv(kind){
       .concat(P.map(a=>[a.team,csvq(teamName(a.team)),a.n,r1(a.avgS),r1(a.avg),a.opr==null?"":r1(a.opr),a.floor==null?"":Math.round(a.floor),a.max,r1(a.auto),r1(a.tele),r1(a.end),r1(a.tips),a.cycle==null?"":Math.round(a.cycle),pct(a.tPark),pct(a.rel),a.noShows,r1(a.foul),a.drive?r1(a.drive):"",r1(a.trend),a.acc==null?"":pct(a.acc),a.shots==null?"":r1(a.shots),pct(a.defShare),a.aStartMode,a.zoneMode].join(",")));
   }else{
     const rows=rawAll();if(!rows.length){toast("אין רשומות לייצא");return;}
-    const cols=["match","team","ally","slot","noShow","aStart","aLeave","aPark","aTips","tTips","shotsHit","shotsMiss","cell","flower","bonus","garden","tPark","zone","minor","major","card","broke","lostConn","defT","wasDef","drive","notes"];
-    const head=["מאץ׳","קבוצה","ברית","עמדה","לא הגיע","עמדת פתיחה","יציאה","חניה אוטונומי","היפוכים אוטונומי","היפוכים ידני","פגיעות","החטאות","תא","פרח","בונוס","גינה","חניה סוף","אזור ירי","עבירות קלות","עבירות חמורות","כרטיס","תקלה","איבד תקשורת","הגנה (0 עד 2)","שיחקו עליו הגנה","נהיגה","הערות","אוטונומי","ידני","סוף","תרומה","עבירות ליריב","זמן מחזור","סקאוטר","נשמר","מוצא מהחישוב"];
+    const cols=["match","team","ally","slot","noShow","aStart","aLeave","aPark","aTips","tTips","shotsHit","shotsMiss","cell","flower","bonus","garden","tPark","zone","minor","major","card","broke","lostConn","defT","wasDef","drive","notes","fm","aHit","aFlip","tFlip","fBalls","nectHive","tags"];
+    const head=["מאץ׳","קבוצה","ברית","עמדה","לא הגיע","עמדת פתיחה","יציאה","חניה אוטונומי","היפוכים אוטונומי","היפוכים ידני","פגיעות","החטאות","תא","פרח","בונוס","גינה","חניה סוף","אזור ירי","עבירות קלות","עבירות חמורות","כרטיס","תקלה","איבד תקשורת","הגנה (0 עד 2)","שיחקו עליו הגנה","נהיגה","הערות","מבנה הטופס","כדורים בתא באוטונומי","היפוכי הברית באוטונומי","היפוכי הברית בידני","כדורים בפרחים","נקטר לכוורת","תגיות","אוטונומי","ידני","סוף","תרומה","עבירות ליריב","זמן מחזור","סקאוטר","נשמר","מוצא מהחישוב"];
     const ign=S.control.ignore||{};
-    lines=[head.join(",")].concat([...rows].sort((a,b)=>a.match-b.match||a.team-b.team).map(r=>{const p=pts(r);const cy=cycleOf(r);return cols.map(c=>csvq(typeof r[c]==="boolean"?(r[c]?1:0):r[c])).concat([p.auto,p.tele,p.end,p.total,p.foul,cy==null?"":Math.round(cy),csvq(scoutName(r.by)),csvq(new Date(r.ts||0).toLocaleString("he-IL")),ign[ignKey(r)]?1:0]).join(",");}));
+    lines=[head.join(",")].concat([...rows].sort((a,b)=>a.match-b.match||a.team-b.team).map(r0=>{const r=credRow(r0);const p=pts(r);const cy=cycleOf(r);return cols.map(c=>csvq(c==="tags"?(r.tags||[]).map(t=>TAGS.find(x=>x[0]===t)?.[1]||t).join(" · "):c==="aTips"||c==="tTips"?Math.round((r[c]||0)*100)/100:typeof r[c]==="boolean"?(r[c]?1:0):r[c])).concat([p.auto,p.tele,p.end,p.total,p.foul,cy==null?"":Math.round(cy),csvq(scoutName(r.by)),csvq(new Date(r.ts||0).toLocaleString("he-IL")),ign[ignKey(r)]?1:0]).join(",");}));
   }
   const dl=await window.claude?.use?.("downloads");
   if(!dl){toast("הורדה לא זמינה בתצוגה הזו");return;}
@@ -4484,8 +4539,9 @@ function renderCrew(){
   all.sort((a,b)=>b.xp-a.xp||b.records-a.records);
   const won=new Set();
   const lead=(f)=>{const c=all.filter(s=>f(s)>0&&!won.has(s.uid));if(!c.length)return null;const w=c.reduce((b,s)=>f(s)>f(b)?s:b,c[0]);won.add(w.uid);return w;};
-  const accPick=()=>{const w=all.filter(s=>s.accN>=3&&!won.has(s.uid)).sort((a,b)=>Math.abs(a.acc)-Math.abs(b.acc))[0];if(w)won.add(w.uid);return w;};
-  const aw=[["הכי הרבה ניסיון",lead(s=>s.xp),s=>nm(s.xp)+" נק׳"],["הכי הרבה רשומות",lead(s=>s.records),s=>nm(s.records)+" רשומות"],["הרצף הכי ארוך",lead(s=>s.streak),s=>nm(s.streak)+" ברצף"],["עין חדה",lead(s=>s.notes),s=>nm(s.notes)+" הערות"],["אוהב השעון",lead(s=>s.clock),s=>nm(s.clock)+" מאצ׳ים"],["הכי מדויק",accPick()||null,s=>"סטייה "+nm((s.acc>0?"+":"")+r1(s.acc))],["הכי הרבה כל הכבוד",lead(s=>s.kudos),s=>nm(s.kudos)+" פעמים"]].filter(a=>a[1]);
+  /* "הכי מדויק" רק למי שבאמת קרוב לניקוד הרשמי (סטייה של עד 8, כמו הסימון הירוק בטבלה) */
+  const accPick=()=>{const w=all.filter(s=>s.accN>=3&&Math.abs(s.acc)<=8&&!won.has(s.uid)).sort((a,b)=>Math.abs(a.acc)-Math.abs(b.acc))[0];if(w)won.add(w.uid);return w;};
+  const aw=[["הכי הרבה ניסיון",lead(s=>s.xp),s=>nm(s.xp)+" נק׳"],["הכי הרבה רשומות",lead(s=>s.records),s=>s.records===1?"רשומה אחת":nm(s.records)+" רשומות"],["הרצף הכי ארוך",lead(s=>s.streak),s=>nm(s.streak)+" ברצף"],["עין חדה",lead(s=>s.notes),s=>s.notes===1?"הערה אחת":nm(s.notes)+" הערות"],["אוהב השעון",lead(s=>s.clock),s=>s.clock===1?"מאץ׳ אחד":nm(s.clock)+" מאצ׳ים"],["הכי מדויק",accPick()||null,s=>"סטייה "+nm((s.acc>0?"+":"")+r1(s.acc))],["הכי הרבה כל הכבוד",lead(s=>s.kudos),s=>s.kudos===1?"פעם אחת":nm(s.kudos)+" פעמים"]].filter(a=>a[1]);
   const sel=all.find(s=>s.uid===S.crewSel);
   $("v-crew").innerHTML=`
   <div class="panel"><div class="ph"><h2>אלופי התחרות</h2><span class="hint">מתעדכן חי מכל רשומה</span><span class="right">${S.demo?"":`<button class="btn" data-pubboard="1">פרסום הטבלה לסקאוטרים</button>`}</span></div>
@@ -4498,7 +4554,7 @@ function renderCrew(){
   ${sel?`<div class="panel" id="crewDetail"><div class="hero">${avatar(sel.uid,96)}<div style="display:grid;gap:4px;min-width:0"><h2>${esc(scoutName(sel.uid))}</h2>${profileOf(sel.uid)?.motto?`<span class="motto">${esc(profileOf(sel.uid).motto)}</span>`:""}<span class="flat" style="font-size:13px">${slotAt(sel.uid,curMatch())?"עמדה "+SLOTNAME[slotAt(sel.uid,curMatch())]:"לא משובץ עכשיו"}${profileOf(sel.uid)?.joined?" · בצוות מ־"+new Date(profileOf(sel.uid).joined).toLocaleDateString("he-IL"):""}</span></div>${xpBlock(sel)}</div>
     <div class="minis" style="margin-top:14px">${[["רשומות בתחרות",nm(sel.records)],["סך הכול",nm(sel.life)],["הערות",nm(sel.notes)],["רצף הכי ארוך",nm(sel.streak)],["עם השעון",nm(sel.clock)],["דיוק",sel.accN?nm((sel.acc>0?"+":"")+r1(sel.acc)):"—"]].map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("")}</div>
     <div class="ph" style="margin-top:16px"><h2>המאצ׳ים שסקר</h2></div>
-    <div class="matchrow">${sel.rows.filter(r=>(r.ev||"")===curEv()).sort((a,b)=>a.match-b.match).map(r=>`<span class="${r.ally==="blue"?"b":"r"}" title="קבוצה ${r.team}">${r.match} · ${r.team} · ${r.noShow?"—":pts(r).total}</span>`).join("")||'<span class="flat">עוד אין</span>'}</div>
+    <div class="matchrow">${sel.rows.filter(r=>(r.ev||"")===curEv()).sort((a,b)=>a.match-b.match).map(r=>`<span class="${r.ally==="blue"?"b":"r"}" title="קבוצה ${r.team}">${r.match} · ${r.team} · ${r.noShow?"—":pts(credRow(r)).total}</span>`).join("")||'<span class="flat">עוד אין</span>'}</div>
     <div class="ph" style="margin-top:16px"><h2>תגים</h2><span class="hint">${nm(sel.badges.length)} מתוך ${nm(BADGES.length)}</span></div>${badgesGrid(sel)}
   </div>`:""}`;
 }
@@ -4584,7 +4640,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.ai)return askAI(t.dataset.ai);
   if(t.dataset.sort){const k=t.dataset.sort;if(S.sort===k)S.sortDir*=-1;else{S.sort=k;S.sortDir=(k==="team"||k==="cycle")?1:-1;}renderBoard();return refocus("sort",k);}
   if(t.dataset.dnp){ev.stopPropagation();const n=+t.dataset.dnp;const st=new Set(dnpSet());st.has(n)?st.delete(n):st.add(n);
-    if(S.demo){S.demoDnp=[...st];renderAlly();}else if(isMgr())writeControl({day:{...(S.control.day||{}),dnp:[...st]}},st.has(n)?"סומנה ״לא לבחור״":"הוחזרה לרשימה");return refocus("dnp",n);}
+    if(S.demo){S.demoDnp=[...st];renderAlly();}else if(isMgr())writeControl({day:{...(S.control.day||{}),dnp:[...st]}},st.has(n)?"סומנה ״לא לבחור״":"הוחזרה לרשימה",{dnp:[...st]});return refocus("dnp",n);}
   if(t.dataset.strike){const n=+t.dataset.strike;const st=new Set(struckSet());st.has(n)?st.delete(n):st.add(n);
     if(!S.demo&&db&&CLOUD()){if(isMgr())writeControl({struck:[...st]});}else{S.struckLocal=st;LS.set("bbz-struck",[...st]);}ev.stopPropagation();if(S.tab==="play")renderPlay();renderAlly();return refocus("strike",n);}
   if(t.dataset.ign){ev.stopPropagation();const ig={...(S.control.ignore||{})};if(ig[t.dataset.ign])delete ig[t.dataset.ign];else ig[t.dataset.ign]=true;writeControl({ignore:ig},"החישוב עודכן");return refocus("ign",t.dataset.ign);}
@@ -4596,12 +4652,12 @@ document.addEventListener("click",ev=>{
     schedArm="";writeControl({sched:out},"נשמרו "+Object.keys(out).length+" מאצ׳ים"+(bad?" · דולגו שורות "+badLines.slice(0,5).join(", ")+": צריך מספר מאץ׳ וארבע קבוצות שונות":""));return;}
   if(t.dataset.autoassign)return autoAssign();
   if(t.dataset.bcsend){const txt=($("bcTxt")?.value||"").replace(STRIP,"").trim().slice(0,200);if(!txt){toast("לכתוב קודם את ההודעה");$("bcTxt")?.focus();return;}
-    writeControl({day:{...(S.control.day||{}),msg:{t:txt,at:Date.now(),to:$("bcTo")?.value||"all"}}},"ההודעה נשלחה");return;}
-  if(t.dataset.bcclear){const d={...(S.control.day||{})};delete d.msg;writeControl({day:d},"ההודעה בוטלה");return;}
+    {const msg={t:txt,at:Date.now(),to:$("bcTo")?.value||"all"};writeControl({day:{...(S.control.day||{}),msg}},"ההודעה נשלחה",{msg});}return;}
+  if(t.dataset.bcclear){const d={...(S.control.day||{})};delete d.msg;writeControl({day:d},"ההודעה בוטלה",{msg:null});return;}
   if(t.dataset.ftcpull)return ftcSync($("ftcCode")?.value,false);
   if(t.dataset.ftcauto){const d=S.control.day||{};const code=String($("ftcCode")?.value||d.ftc?.code||"").replace(/[^a-z0-9]/gi,"").toUpperCase();
     if(!d.ftc?.auto&&!code){toast("לכתוב קודם את קוד התחרות");return;}
-    writeControl({day:{...d,ftc:{...(d.ftc||{}),code,auto:!d.ftc?.auto}}},!d.ftc?.auto?"עדכון אוטומטי פועל":"עדכון אוטומטי כבוי");if(!d.ftc?.auto)ftcSync(code,true);return;}
+    writeControl({day:{...d,ftc:{...(d.ftc||{}),code,auto:!d.ftc?.auto}}},!d.ftc?.auto?"עדכון אוטומטי פועל":"עדכון אוטומטי כבוי",{ftc:{...(d.ftc||{}),code,auto:!d.ftc?.auto}});if(!d.ftc?.auto)ftcSync(code,true);return;}
   if(t.dataset.newev)return newEvent();
   if(t.dataset.export)return exportCsv(t.dataset.export);
   if(t.dataset.simexp)return simExport(t.dataset.simexp);
@@ -4611,7 +4667,9 @@ document.addEventListener("click",ev=>{
   if(t.dataset.plclear){const P=playoffState();setPlayoff({n:P?P.n:4,al:[]});return;}
   if(t.closest("#form")){
     if(t.id==="clkBtn"){if(!CLK.on&&CLK.ended&&!CLK.armed){CLK.armed=true;renderClock();setTimeout(()=>{CLK.armed=false;renderClock();},3000);return;}if(!CLK.on)return startClock();if(!CLK.armed){CLK.armed=true;renderClock();setTimeout(()=>{CLK.armed=false;renderClock();},3000);return;}stopClock();return;}
-    if(t.id==="clkSync"){startClock(Date.now()-38000);toast("השעון סונכרן לתחילת השליטה הידנית");return;}
+    /* כשהשעון כבר רץ באוטונומי – לחיצה שנייה, כי לחיצה בטעות מקפיצה את השעון ומקלקלת את הזמנים */
+    if(t.id==="clkSync"){if(CLK.on&&!clkSyncArm){clkSyncArm=true;t.textContent="ללחוץ שוב: הידני התחיל";t.classList.add("armed");setTimeout(()=>{clkSyncArm=false;const b=$("clkSync");if(b){b.textContent="הידני התחיל";b.classList.remove("armed");}},3000);return;}
+      clkSyncArm=false;t.textContent="הידני התחיל";t.classList.remove("armed");startClock(Date.now()-38000);toast("השעון סונכרן לתחילת השליטה הידנית");return;}
     if(t.id==="cancelEdit"){freshForm(+$("fMatch").value,+$("fTeam").value,F.slot);S.editId=null;renderForm();return;}
     if(t.id==="formSave")return save();
     if(t.id==="noShow"){F.noShow=!F.noShow;markDirty();return renderForm();}
@@ -4666,7 +4724,7 @@ document.addEventListener("change",e=>{
     /* חל מהמאץ׳ הנוכחי ועד החלפת המשמרת הבאה: המאצ׳ים שכבר עברו נשארים בשיבוץ הקודם, ולא נספרים כחסרים */
     let log=(S.control.day?.log||[]).filter(e=>!(e.u===u&&e.f===cur));
     if(!log.some(e=>e.u===u)&&S.control.assign?.[u])log.unshift({u,s:S.control.assign[u],f:1});
-    log.push({u,s:v,f:cur});writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}});}
+    log.push({u,s:v,f:cur});writeControl({assign:a,day:{...(S.control.day||{}),log:log.slice(-400)}},null,{log:log.slice(-400)});}
   if(el.dataset?.score){const m=el.dataset.score;const sc={...(S.control.scores||{})};const cur=[...(sc[m]||[null,null])];if(el.value!==""&&+el.value<0){toast("ניקוד לא יכול להיות שלילי");el.value="";}
     cur[+el.dataset.side]=el.value===""?null:Math.max(0,Math.min(999,Math.round(+el.value||0)));
     if(cur[0]==null&&cur[1]==null)delete sc[m];else sc[m]=[cur[0]??null,cur[1]??null];writeControl({scores:sc});}
@@ -4973,9 +5031,13 @@ function pitSave(retry){
 /* שיבוץ אוטומטי: שיבוצים קיימים לא זזים. רק קבוצות בלי סקאוטר מתחלקות, ברצפים לפי מספר */
 function pitAutoAssign(){
   const teams=pitTeams();
-  let scouts=Object.keys(S.docs).filter(u=>u!==S.me);if(!scouts.length&&S.me)scouts=[S.me];
+  if(!teams.length){toast("אין עדיין קבוצות בלוח הזמנים");return;}
+  let scouts=Object.keys(S.docs).filter(u=>u!==S.me&&!S.removed?.has(u));if(!scouts.length&&S.me)scouts=[S.me];
   if(!scouts.length){toast("אין עדיין סקאוטרים מחוברים");return;}
-  const own=pitOwner();const a={};for(const [u,ts] of Object.entries(S.control.pitAssign||{}))a[u]=[...ts];scouts.forEach(u=>a[u]=a[u]||[]);
+  /* מי שבהפסקה עכשיו מקבל את הפיט. אם אין משמרות – כולם */
+  {const cur=curMatch();if((S.control.day?.log||[]).length){const off=scouts.filter(u=>!slotAt(u,cur));if(off.length)scouts=off;}}
+  const own=pitOwner();const a={};for(const [u,ts] of Object.entries(S.control.pitAssign||{}))if(!S.removed?.has(u))a[u]=[...ts];scouts.forEach(u=>a[u]=a[u]||[]);
+  for(const t of Object.keys(own))if(S.removed?.has(own[t]))delete own[t]; /* קבוצות של סקאוטר שהוסר – פנויות שוב */
   const free=teams.filter(t=>!own[t]);
   if(!free.length){toast("כל הקבוצות כבר משובצות");return;}
   const target=Math.ceil(teams.length/scouts.length);let cur=null;
@@ -5008,19 +5070,19 @@ function pitFormHTML(){
     <div class="pit-say"><b>פותחים ככה:</b> ״היי! אנחנו מאפולו 9662. יש לכם שתי דקות לכמה שאלות על הרובוט?״<br><span class="flat">אם הם עסוקים – ״הקבוצה לא בפיט?״ למטה, וחוזרים אחר כך.</span></div>
     <div class="block"><h3>על הרובוט</h3>
       <div class="pit-photo">${PF.photo?`<img src="${PF.photo}" alt="תמונה של הרובוט של ${t}"><button type="button" class="btn" data-pphotodel="1">להסיר את התמונה</button>`:""}<label class="btn" for="pitPhoto">📷 ${PF.photo?"תמונה אחרת":"תמונה של הרובוט"}</label><input type="file" id="pitPhoto" accept="image/*" capture="environment" hidden></div>
-      <div class="row">${one("drive")}${one("shooters")}</div><div class="row">${one("side")}</div>${many("intake")}<div class="ctrs">${num("cap")}</div></div>
-    <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}<div class="ctrs">${tog("aLeave")}${noShooter?"":num("aBalls")}${num("aTips")}${tog("aPark")}${tog("autoAdapt")}</div></div>
-    ${noShooter?"":`<div class="block"><h3>ירי והיפוכים</h3><div class="pit-key"><span class="chip warn">⭐ הכי חשוב</span>${one("balls")}</div>
-      <div class="ctrs">${num("tipsAll")}${tog("flipSide")}</div>${many("zones")}<div class="row">${one("mount")}</div></div>`}
-    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("tPark")}${tog("late")}${tog("lift")}</div></div>
-    <div class="block"><h3>הקבוצה</h3><div class="row">${one("role")}</div>
-      <div class="field"><label for="pitBreaks">״מה הכי נשבר או נתקע לכם?״</label><input class="inp" id="pitBreaks" maxlength="80" style="width:100%" value="${esc(PF.breaks||"")}"></div></div>
+      <div class="row">${one("drive")}${one("shooters")}</div>${many("intake")}</div>
+    <!-- גרסה 16: הוסרו שאלות שהמאצ׳ים כבר מודדים (יציאה, חניה, היפוכים, תפקיד), שאלות שאף אחד לא משתמש בהן (תוכניות, צד שני, שינוי אוטונומי), ומהירות שכל קבוצה עונה "מהיר". הרשומות הישנות נשמרות -->
+    <div class="block"><h3>אוטונומי</h3>${many("starts",". בצד הכחול האותיות הן D, E, F")}${noShooter?"":`<div class="ctrs">${num("aBalls")}</div>`}</div>
+    ${noShooter?"":`<div class="block"><h3>ירי</h3><div class="pit-key"><span class="chip warn">⭐ הכי חשוב</span>${one("balls")}</div>
+      ${many("zones")}<div class="row">${one("mount")}</div></div>`}
+    <div class="block"><h3>סוף המאץ׳</h3><div class="ctrs">${tog("late")}${tog("lift")}</div></div>
+    <div class="block"><h3>הקבוצה</h3>
+      <div class="field"><label for="pitBreaks">״מה הכי נשבר, נתקע או עוד לא עובד לכם?״</label><input class="inp" id="pitBreaks" maxlength="80" style="width:100%" value="${esc(PF.breaks||"")}"></div></div>
     <details class="block" id="pitMore" ${S.pitMore?"open":""}><summary><b>עוד שאלות</b> <span class="flat">(אם יש להם עוד זמן)</span></summary>
-      <div class="row">${one("speed")}</div>
-      ${noShooter?"":`<div class="row">${one("range")}</div><div class="ctrs">${tog("moving")}${tog("aim")}</div>`}
-      <div class="ctrs">${num("progs")}</div>
+      <div class="row">${one("side")}</div><div class="ctrs">${num("cap")}</div>
+      ${noShooter?"":`<div class="ctrs">${tog("moving")}${tog("aim")}</div>`}
     </details>
-    <div class="block"><div class="field"><label for="pitNotes">״במה אתם הכי גאים ברובוט? ומה עוד לא עובד לכם?״</label><textarea class="inp" id="pitNotes" maxlength="400">${esc(PF.notes)}</textarea></div></div>
+    <div class="block"><div class="field"><label for="pitNotes">הערות <span class="flat">(אפשר לשאול: ״במה אתם הכי גאים ברובוט?״)</span></label><textarea class="inp" id="pitNotes" maxlength="400">${esc(PF.notes)}</textarea></div></div>
     <div class="pit-say">מסיימים ב״תודה ובהצלחה!״ – ושומרים.</div>
     <div class="savebar"><span class="msg">${PF.edits?.length?"עודכן "+PF.edits.length+" פעמים":""}</span><div class="gap">
       <button type="button" class="btn" data-pretry="1">${pitRetryArmed?"ללחוץ שוב · נחזור אליה":"הקבוצה לא בפיט?"}</button>
@@ -5136,7 +5198,8 @@ function measuredOf(a){
     breakdown_share:mval(a.brokeShare,a.n),disconnect_share:mval(a.lost,a.n),
     defended_share:mval(a.wasDefShare,a.n),points_when_defended:a.nDef?mval(a.ptsDef,a.nDef,1):null,points_when_free:a.nFree?mval(a.ptsFree,a.nFree,1):null,
     points_sd:a.n>=2?mval(a.sd,a.n,1):null,points_p25:a.floor!=null?mval(a.floor,a.n,1):null,
-    tags:a.tagN?Object.fromEntries(TAGS.map(([k])=>[k,mval(a.tagShare[k]||0,a.tagN)])):null};
+    tags:a.tagN?Object.fromEntries(TAGS.filter(([k])=>!TAGS_OLD.has(k)).map(([k])=>[k,mval(a.tagShare[k]||0,a.tagN)])):null};
+    /* "מחזור מהיר" ו"כמעט לא עשה כלום" לא נשאלים מגרסה 16: לא שולחים אותם, כי 0 היה נקרא כ"אף פעם" */
 }
 function robotProfile(team,ally,A){
   A=A||allStats().A;const a=A.find(x=>x.team===team);
@@ -5374,13 +5437,16 @@ async function backupApply(o){
   /* רק סקאוטר שכבר מוכר (יש לו מסמך, או ברשימת המצטרפים). השם מהרשימה שלנו, לא מהקוד */
   const known=!!S.docs[u]||(scoutsCache||[]).some(m=>m.uid===u&&m.role==="scout");
   if(!known){toast("הקוד הוא של חשבון שלא מוכר כסקאוטר בצוות. לא נקלט");return;}
-  const rows={},pit={};
-  for(const [id,r] of Object.entries(o.rows||{})){const x=readRow(id,r,u);if(x){const {by,id:_i,...rest}=x;rows[id]={...rest,ts:Math.min(+r.ts||Date.now(),Date.now())};}}
-  for(const [id,r] of Object.entries(o.pit||{})){const x=pitRead(id,r,u);if(x){const {by,id:_i,...rest}=x;pit[id]={...rest,photo:"",ts:Math.min(+r.ts||Date.now(),Date.now())};}}
-  if(!Object.keys(rows).length&&!Object.keys(pit).length){toast("אין בקוד רשומות תקינות");return;}
+  const rows={},pit={};const cur=S.docs[u]||{};let old=0;
+  /* רשומה שבענן כבר יש לה גרסה חדשה יותר (כולל מחיקה) – לא דורסים אותה בגיבוי ישן */
+  const newer=(c,ts)=>c&&(+c.ts||0)>=ts;
+  for(const [id,r] of Object.entries(o.rows||{})){const x=readRow(id,r,u);if(x){const ts=Math.min(+r.ts||Date.now(),Date.now());if(newer(cur.rows?.[id],ts)){old++;continue;}const {by,id:_i,...rest}=x;rows[id]={...rest,ts};}}
+  /* בקוד אין תמונות: לא שולחים את השדה, כדי שתמונה שכבר בענן תישאר */
+  for(const [id,r] of Object.entries(o.pit||{})){const x=pitRead(id,r,u);if(x){const ts=Math.min(+r.ts||Date.now(),Date.now());if(newer(cur.pit?.[id],ts)){old++;continue;}const {by,id:_i,photo:_p,...rest}=x;pit[id]={...rest,ts};}}
+  if(!Object.keys(rows).length&&!Object.keys(pit).length){toast(old?"כל הרשומות בקוד כבר נמצאות בענן בגרסה חדשה יותר":"אין בקוד רשומות תקינות");return;}
   const ref=db.doc("entries/"+u);const patch={ts:Date.now()};if(Object.keys(rows).length)patch.rows=rows;if(Object.keys(pit).length)patch.pit=pit;
   try{await ref.update(patch);}catch(e){if(e?.code==="not_found")await ref.set({rows,pit,ts:Date.now()});else{toast("הכתיבה נכשלה. לנסות שוב כשיש רשת");return;}}
-  toast("התקבלו "+Object.keys(rows).length+" רשומות"+(Object.keys(pit).length?" ו־"+Object.keys(pit).length+" פיט":"")+" מ"+scoutName(u));
+  toast("התקבלו "+Object.keys(rows).length+" רשומות"+(Object.keys(pit).length?" ו־"+Object.keys(pit).length+" פיט":"")+" מ"+scoutName(u)+(old?" · "+(old===1?"אחת כבר הייתה":old+" כבר היו")+" בענן בגרסה חדשה יותר":""));
 }
 function renderBkStatus(){for(const id of ["bkStatus","bkScanStatus"]){const el=$(id);if(el)el.textContent=BK.id?"נקלטו "+Object.keys(BK.parts).length+" מתוך "+BK.n+" קודים":"";}}
 let bkStream=null;
