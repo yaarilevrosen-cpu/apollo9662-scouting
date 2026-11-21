@@ -422,6 +422,13 @@ async function setJoinCode(code){await ready;const {error}=await sb().rpc("set_j
 async function newSimToken(){await ready;if(state.role!=="manager")throw fail("permission_denied");
   const A="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";const r=new Uint32Array(32);crypto.getRandomValues(r);const tok=[...r].map(x=>A[x%A.length]).join("");
   const {error}=await sb().rpc("set_sim_token",{tok});if(error)throw fail(error);return {url:CFG.url,key:CFG.anonKey,token:tok};}
+/* גרסה 19: קוד של 6 ספרות. אסימון חדש (הקודם מפסיק מיד) ו־6 ספרות שתקפות 10 דקות, לשימוש אחד */
+async function newSimPair(ev){await ready;if(state.role!=="manager")throw fail("permission_denied");
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";const r=new Uint32Array(32);crypto.getRandomValues(r);const tok=[...r].map(x=>A[x%A.length]).join("");
+  /* 6 ספרות בלי הטיה: דוחים ערכים מעל הכפולה האחרונה של מיליון */
+  const L=Math.floor(4294967296/1e6)*1e6;let n;do{n=crypto.getRandomValues(new Uint32Array(1))[0];}while(n>=L);const pin=String(n%1e6).padStart(6,"0");
+  const {error}=await sb().rpc("set_sim_pair",{tok,pin,ev:ev||""});if(error)throw fail(error);
+  return {url:CFG.url,key:CFG.anonKey,token:tok,pin,exp:Date.now()+10*60000};}
 /* יציאה: לא מוחקת רשומות שלא נשלחו. מוחקת את כל השאר מהטלפון (מכשיר משותף) */
 async function signOut(force){
   if(!force&&pendingCount())return "pending";
@@ -452,6 +459,6 @@ async function simConnInfo(email,pw){
   }finally{try{await tmp.auth.signOut({scope:"local"});}catch(_){}}
   return {url:CFG.url,key:CFG.anonKey};
 }
-window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,newSimToken,signOut,listScouts,removeScout,restoreScout,pendingCount,ready,_refreshAll:refreshAll};
+window.__CLOUD={status:()=>({...state}),simConnInfo,onStatus:f=>{listeners.add(f);return()=>listeners.delete(f);},publishProfiles,setJoinCode,newSimToken,newSimPair,signOut,listScouts,removeScout,restoreScout,pendingCount,ready,_refreshAll:refreshAll};
 window.claude={use:async k=>k==="db"?db:k==="user"?user:k==="downloads"?downloads:null};
 })();

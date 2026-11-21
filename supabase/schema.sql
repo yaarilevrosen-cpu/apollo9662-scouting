@@ -219,6 +219,8 @@ begin
   if not public.is_manager() then raise exception 'not_manager'; end if;
   if tok is null or tok !~ '^[A-Za-z0-9]{24,64}$' then raise exception 'bad_token'; end if;
   insert into public.settings(key, value) values ('sim_token', tok) on conflict (key) do update set value = excluded.value;
+  -- אסימון חדש מבטל ספרות שעוד לא נוצלו (גרסה 19), כדי שהן לא ימסרו אותו. set_sim_pair מכניסה ספרות חדשות אחרי זה
+  delete from public.sim_pairing where id = 1;
 end $$;
 revoke all on function public.set_sim_token(text) from public;
 grant execute on function public.set_sim_token(text) to authenticated;
@@ -234,6 +236,60 @@ begin
     'profiles', coalesce((select jsonb_agg(jsonb_build_object('team', team, 'data', data, 'updated_at', updated_at)) from public.sim_profiles where event_code = coalesce(ev, '')), '[]'::jsonb));
 end $$;
 revoke all on function public.sim_read(text, text) from public;
+
+-- ── קוד צימוד של 6 ספרות (גרסה 19): במקום קיואר או מחרוזת ארוכה ──
+-- המנהל יוצר אסימון חדש ו־6 ספרות. בסימולטור מקלידים את הספרות פעם אחת ומקבלים את האסימון (ואת התחרות).
+-- הספרות: תקפות 10 דקות, לשימוש אחד, ונשרפות אחרי 10 טעויות (סיכוי ניחוש 10 מתוך מיליון)
+create table if not exists public.sim_pairing (
+  id     int primary key default 1 check (id = 1),
+  pin    text not null check (pin ~ '^[0-9]{6}$'),
+  ev     text not null default '' check (ev ~ '^[A-Za-z0-9]{0,12}$'),
+  exp    timestamptz not null,
+  fails  int not null default 0
+);
+-- בלי מדיניות = חסום לכולם. רק set_sim_pair ו־sim_pair (בהרשאות הבעלים) נוגעות בה
+alter table public.sim_pairing enable row level security;
+revoke all on public.sim_pairing from anon, authenticated;
+
+create or replace function public.set_sim_pair(tok text, pin text, ev text default '') returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_manager() then raise exception 'not_manager'; end if;
+  if pin is null or pin !~ '^[0-9]{6}$' then raise exception 'bad_pin'; end if;
+  if coalesce(ev, '') !~ '^[A-Za-z0-9]{0,12}$' then raise exception 'bad_event'; end if;
+  perform public.set_sim_token(tok);
+  insert into public.sim_pairing(id, pin, ev, exp, fails) values (1, pin, coalesce(ev, ''), now() + interval '10 minutes', 0)
+    on conflict (id) do update set pin = excluded.pin, ev = excluded.ev, exp = excluded.exp, fails = 0;
+end $$;
+revoke all on function public.set_sim_pair(text, text, text) from public;
+grant execute on function public.set_sim_pair(text, text, text) to authenticated;
+
+-- גם בלי חשבון. לא זורקת שגיאה בטעות, כדי שספירת הטעויות תישמר.
+-- חשוב: הספירה נשמרת רק כי כל קריאה נשמרת בסוף. לא להפעיל ב־PostgREST את db-tx-end עם allow-override
+-- (אז אפשר לבקש ביטול בסוף כל קריאה, והספירה לא נשמרת – ניחוש בלי הגבלה).
+-- ידוע ומקובל: מי שמכיר את הכתובת הציבורית יכול לשרוף ספרות פעילות ב־10 ניסיונות. המנהל פשוט יוצר חדשות.
+-- מחזירה { token, event } או { error: 'bad_pin' | 'expired' }
+create or replace function public.sim_pair(pin text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare r record; t text; p text := btrim(coalesce(pin, ''));
+begin
+  select * into r from public.sim_pairing where id = 1 for update;
+  if not found then return jsonb_build_object('error', 'expired'); end if;
+  if r.exp < now() or r.fails >= 10 then
+    delete from public.sim_pairing where id = 1;
+    return jsonb_build_object('error', 'expired');
+  end if;
+  if p <> r.pin then
+    if r.fails + 1 >= 10 then delete from public.sim_pairing where id = 1;
+    else update public.sim_pairing set fails = fails + 1 where id = 1; end if;
+    return jsonb_build_object('error', 'bad_pin');
+  end if;
+  delete from public.sim_pairing where id = 1;
+  select value into t from public.settings where key = 'sim_token';
+  if t is null then return jsonb_build_object('error', 'expired'); end if;
+  return jsonb_build_object('token', t, 'event', r.ev);
+end $$;
+revoke all on function public.sim_pair(text) from public;
 
 -- כתיבה למסמך: set (החלפה) או merge (מיזוג עמוק). רץ בהרשאות המשתמש, כך שהמדיניות חלה.
 drop function if exists public.doc_write(text, jsonb, boolean);
@@ -286,6 +342,7 @@ create trigger simm_stamp before insert or update on public.sim_meta for each ro
 -- סופאבייס נותן הרשאת הרצה לכל פונקציה חדשה; אנונימי בלי חשבון לא צריך אף אחת
 revoke execute on all functions in schema public from anon;
 grant execute on function public.sim_read(text, text) to anon, authenticated;
+grant execute on function public.sim_pair(text) to anon, authenticated;
 revoke execute on function public.jsonb_deep_merge(jsonb, jsonb, int) from public;
 grant execute on function public.jsonb_deep_merge(jsonb, jsonb, int) to authenticated;
 

@@ -17,6 +17,9 @@
    קוד חיבור מהמנהל (במקום להקליד חמישה שדות):
      const cfg = await ScoutingReader.parseConnCode(scannedOrPasted);  // null לקוד פגום
      const r = ScoutingReader.create(Object.assign({ onUpdate, onStatus }, cfg));
+   קוד של 6 ספרות מהמנהל (גרסה 19, הכי פשוט – בלי קיואר ובלי הדבקה):
+     const cfg = await ScoutingReader.pairWithPin("123456");      // פעם אחת. לשמור את cfg במחשב
+     if (!cfg.error) ScoutingReader.create(Object.assign({ onUpdate, onStatus }, cfg));
    הסיסמה והמפתח – בקובץ הגדרות מקומי שלא נכנס למאגר. */
 (function(root){
 "use strict";
@@ -153,6 +156,31 @@ async function parseConnCode(str){
     return v2?{url:u.origin,anonKey:c.key,token:c.token,eventCode:ev}:{url:u.origin,anonKey:c.key,email:c.email,password:c.pw,eventCode:ev};
   }catch(e){return null;}
 }
-const api={create,parseConnCode};
+/* גרסה 19: קוד של 6 ספרות מהמנהל. מחליפים אותו פעם אחת באסימון קבוע, ושומרים את מה שחוזר במחשב.
+   הכתובת והמפתח הציבורי של הענן של 04 ציבוריים (החלטה 03), ולכן הם כאן כברירת מחדל.
+   מחזיר { url, anonKey, token, eventCode } – בדיוק מה ש־create מקבל – או
+   { error: "bad_pin" | "expired" | "bad_format" | "network" | "cloud_outdated" | "not_configured" }.
+   bad_pin – טעות בהקלדה (אפשר לנסות שוב); expired – הקוד פג, נוצל או נשרף: לבקש מהמנהל קוד חדש. */
+const CLOUD_URL="https://hfrikgkjkkpnvmxsapbl.supabase.co",
+  CLOUD_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmcmlrZ2tqa2twbnZteHNhcGJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NjM3NDgsImV4cCI6MjExMDIzOTc0OH0.gEADhHBU7yrgdhUnStXdYItEaV6TZpWUr08B9W8DW_Y";
+async function pairWithPin(pin,opt){
+  /* כתובת אחרת בלי מפתח משלה – לא שולחים אליה את המפתח של הענן שלנו */
+  if(opt&&opt.url&&!opt.anonKey)return {error:"not_configured"};
+  const o=Object.assign({url:CLOUD_URL,anonKey:CLOUD_KEY},opt||{});
+  /* מורידים רווחים ומקפים, וממירים ספרות ערביות ורחבות לרגילות */
+  const p=String(pin||"").replace(/[\s\-–]/g,"").replace(/[\u0660-\u0669\u06F0-\u06F9\uFF10-\uFF19]/g,d=>String((d.charCodeAt(0)-[0x660,0x6F0,0xFF10].find(b=>d.charCodeAt(0)>=b&&d.charCodeAt(0)<=b+9))));
+  if(!/^[0-9]{6}$/.test(p))return {error:"bad_format"};
+  let r;try{
+    const c=new AbortController();const t=setTimeout(()=>c.abort(),TIMEOUT_MS);
+    const res=await fetch(o.url.replace(/\/$/,"")+"/rest/v1/rpc/sim_pair",{method:"POST",signal:c.signal,
+      headers:{"Content-Type":"application/json",apikey:o.anonKey,Authorization:"Bearer "+o.anonKey},body:JSON.stringify({pin:p})}).finally(()=>clearTimeout(t));
+    /* 404 – בענן עוד אין sim_pair: צריך לעדכן את המבנה של 04 */
+    if(res.status===404)return {error:"cloud_outdated"};if(!res.ok)return {error:"network"};r=await res.json();
+  }catch(e){return {error:"network"};}
+  if(!r||r.error)return {error:r&&/^(bad_pin|expired)$/.test(r.error)?r.error:"network"};
+  if(typeof r.token!=="string"||!/^[A-Za-z0-9]{24,64}$/.test(r.token))return {error:"network"};
+  return {url:o.url,anonKey:o.anonKey,token:r.token,eventCode:typeof r.event==="string"?r.event:""};
+}
+const api={create,parseConnCode,pairWithPin};
 if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.ScoutingReader=api;
 })(typeof window!=="undefined"?window:globalThis);

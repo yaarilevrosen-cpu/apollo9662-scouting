@@ -32,6 +32,20 @@ const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setIt
   r4.stop();
   const ups5=[];const r5=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",token:"WrongWrongWrongWrongWrong1",storage:mem(),onUpdate:x=>ups5.push(x)});
   await wait(1500);ok(ups5.length===0,"reader token: wrong token gets nothing");r5.stop();
+  /* גרסה 19: 6 ספרות → אסימון → קריאה */
+  await q.query("insert into sim_pairing(id,pin,ev,exp,fails) values (1,'482913','',now()+interval '10 minutes',0) on conflict (id) do update set pin=excluded.pin,ev=excluded.ev,exp=excluded.exp,fails=0");
+  const SRV={url:`http://127.0.0.1:${PORT}`,anonKey:"anon"};
+  ok((await R.pairWithPin("12345",SRV)).error==="bad_format","reader pin: 5 digits refused without a request");
+  ok((await R.pairWithPin("000000",SRV)).error==="bad_pin","reader pin: wrong digits → bad_pin");
+  const pc=await R.pairWithPin(" 482-913 ",SRV);
+  ok(pc.token==="Tok1234567890abcdefghijklmn"&&pc.url===SRV.url&&pc.eventCode==="","reader pin: right digits (with space and dash) → token");
+  ok((await R.pairWithPin("482913",SRV)).error==="expired","reader pin: one use only");
+  const ups6=[];const r6=R.create(Object.assign({storage:mem(),onUpdate:x=>ups6.push(x)},pc));
+  await wait(2500);ok(ups6[0]&&ups6[0].data.robots.length===nProf,"reader pin: paired reader gets profiles");r6.stop();
+  ok((await R.pairWithPin("482913",{url:"http://127.0.0.1:1",anonKey:"anon"})).error==="network","reader pin: no server → network");
+  ok((await R.pairWithPin("482913",{url:"http://127.0.0.1:1"})).error==="not_configured","reader pin: other url without its own key refused");
+  await q.query("insert into sim_pairing(id,pin,ev,exp,fails) values (1,'102938','',now()+interval '10 minutes',0) on conflict (id) do update set pin=excluded.pin,exp=excluded.exp,fails=0");
+  ok(!!(await R.pairWithPin("١٠٢٩٣٨",SRV)).token,"reader pin: Arabic-Indic digits accepted");
   srv.kill();await wait(300);
   /* בלי שרת: זיכרון */
   const ups2=[];const r2=R.create({url:`http://127.0.0.1:${PORT}`,anonKey:"anon",email:"sim@example.test",password:"pw-sim",storage,onUpdate:x=>ups2.push(x)});

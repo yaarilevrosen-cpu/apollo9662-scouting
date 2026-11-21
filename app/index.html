@@ -5311,9 +5311,9 @@ function renderSimSync(){
     <div style="margin-top:12px"><div class="lbl">סקאוטרים שהצטרפו ${scoutsCache?"("+scoutsCache.length+")":""}</div>
     ${scoutsCache?scoutsCache.map(m=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span>${esc(m.name||"בלי שם")}</span>${m.role==="removed"?'<span class="chip">הוסר</span>':""}<span class="flat" style="font-size:12px">${ago(Date.parse(m.joined_at))}</span><span style="margin-inline-start:auto;display:flex;gap:6px">${m.role==="removed"?`<button class="btn" data-rstscout="${esc(m.uid)}">להחזיר</button><button class="btn" data-wipescout="${esc(m.uid)}">${rmArm==="w"+m.uid?"ללחוץ שוב: מחיקה לתמיד":"למחוק גם את הרשומות"}</button>`:`<button class="btn" data-rmscout="${esc(m.uid)}">${rmArm===m.uid?"ללחוץ שוב להסרה":"הסרה"}</button>`}</span></div>`).join("")||'<div class="flat">עוד אין</div>':`<button class="btn" data-loadscouts="1">להציג</button>`}
     <div class="flat" style="font-size:12px;margin-top:6px">הסרה חוסמת את הגישה בלבד: הרשומות שכבר נשמרו נשארות ונספרות. מחיקת הרשומות היא צעד נפרד, ואי אפשר לבטל אותה. כדאי גם להחליף את קוד ההצטרפות.</div></div>
-    <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור – בלי סיסמה (מומלץ)</div>
-    <div class="flat" style="font-size:12px;margin-top:4px">כל לחיצה יוצרת אסימון קריאה חדש, והקוד הקודם מפסיק לעבוד מיד. הסימולטור קורא איתו רק את הפרופילים. צריך שהסימולטור יכיר קוד מגרסה 2.</div>
-    <div class="row" style="margin-top:6px"><button class="btn" data-simtok="1">${tokArm?"ללחוץ שוב: הקוד הקודם יפסיק לעבוד":"קוד חיבור חדש"}</button></div></div>
+    <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור – 6 ספרות (מומלץ)</div>
+    <div class="flat" style="font-size:12px;margin-top:4px">מקלידים את 6 הספרות בסימולטור פעם אחת, והוא נשאר מחובר. הספרות תקפות 10 דקות ולשימוש אחד. כל לחיצה מנתקת את החיבור הקודם של הסימולטור.</div>
+    <div class="row" style="margin-top:6px"><button class="btn" data-simtok="1">${tokArm?"ללחוץ שוב: הסימולטור המחובר יתנתק":"קוד חיבור חדש"}</button></div></div>
     <div style="margin-top:14px"><div class="lbl">קוד חיבור לסימולטור עם סיסמה (הדרך הישנה)</div>
     <div class="flat" style="font-size:12px;margin-top:4px">קוד אחד עם כל פרטי החיבור החי, כולל הסיסמה של חשבון הקריאה. הסימולטור סורק או מדביק אותו. לא נשמר כאן.</div>
     <div class="row" style="margin-top:6px"><div class="field"><label for="simConnMail">מייל חשבון הקריאה</label><input class="inp" id="simConnMail" type="email" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" autocapitalize="none" spellcheck="false" dir="ltr" style="width:200px"></div>
@@ -5348,20 +5348,33 @@ document.addEventListener("click",async ev=>{
 /* ── קוד חיבור לסימולטור: A9662C:1:<נתונים>, כמו קוד ה־QR של המאץ׳ (JSON דחוס ובבסיס 64 לכתובות).
    בתוכו: כתובת, מפתח ציבורי, מייל וסיסמה של חשבון הקריאה, וקוד התחרות. בודקים שהחשבון באמת "קריאה בלבד" לפני שמציגים ── */
 let connBusy=false,connCloseT=null,tokArm=false;
-/* קוד חיבור גרסה 2: כתובת, מפתח ציבורי, אסימון קריאה ותחרות. אין בו סיסמה */
+/* קוד חיבור גרסה 19: 6 ספרות גדולות, בלי קיואר. תקפות 10 דקות ולשימוש אחד.
+   למטה, מקופל: הקוד הארוך (A9662C:2) – לסימולטור שעוד לא מכיר 6 ספרות */
+let pinT=null;
 async function simTokOpen(btn){
-  if(!isMgr()||!CLOUD()?.newSimToken||connBusy)return;
-  if(typeof qrcode!=="function"||!window.CompressionStream){toast("הדפדפן הזה לא יודע ליצור קוד");return;}
+  if(!isMgr()||!CLOUD()?.newSimPair||connBusy)return;
   connBusy=true;btn.disabled=true;
-  try{const c=await CLOUD().newSimToken();const code="A9662C:2:"+await packQR({url:c.url,key:c.key,token:c.token,event:curEv()});
-    const q=qrcode(0,"L");q.addData(code,"Byte");q.make();
+  try{const c=await CLOUD().newSimPair(curEv());
+    let long="";try{if(window.CompressionStream)long="A9662C:2:"+await packQR({url:c.url,key:c.key,token:c.token,event:curEv()});}catch(e){}
     let box=$("qrBox");if(!box){box=document.createElement("div");box.id="qrBox";document.body.appendChild(box);}
-    box.innerHTML=`<div class="qr-card" role="dialog" aria-label="קוד חיבור לסימולטור"><h3>קוד חיבור לסימולטור</h3><div class="qr-img">${q.createSvgTag({cellSize:6,margin:4,scalable:true})}</div>
-      <div class="flat" style="font-size:13px">אין בקוד סיסמה. מי שמחזיק אותו יכול רק לקרוא את פרופילי הרובוטים. דלף? ״קוד חיבור חדש״ מבטל אותו.</div>
-      <textarea id="connTxt" class="inp" dir="ltr" rows="3" readonly style="width:100%;font-size:11px">${esc(code)}</textarea>
-      <div style="display:flex;gap:8px;justify-content:center"><button class="btn" data-conncopy="1">להעתיק</button><button class="btn" data-qrclose="1">סגירה</button></div></div>`;
-    clearTimeout(connCloseT);connCloseT=setTimeout(()=>{if($("connTxt"))$("qrBox")?.remove();},120000);
-  }catch(e){toast(/set_sim_token|function/i.test(String(e?.cause?.message||""))?"צריך לעדכן את מבנה הענן (גרסה 14)":"יצירת הקוד נכשלה. לבדוק רשת");}
+    box.innerHTML=`<div class="qr-card" role="dialog" aria-label="קוד חיבור לסימולטור"><h3>קוד חיבור לסימולטור</h3>
+      <div id="simPin" dir="ltr" aria-label="${c.pin.split("").join(" ")}" style="font:700 clamp(40px,12vw,64px)/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;user-select:all">${c.pin.slice(0,3)}&#8201;${c.pin.slice(3)}</div>
+      <div class="flat" style="font-size:14px">להקליד בסימולטור, בחלון ״חיבור חי לסקאוטינג״. <b id="pinLeft"></b></div>
+      <div class="flat" style="font-size:12px">אחרי 10 טעויות הקוד נשרף. אין בו סיסמה: הוא נותן רק לקרוא את פרופילי הרובוטים.</div>
+      ${long?`<details style="text-align:start"><summary style="font-size:13px;cursor:pointer">הסימולטור לא מכיר 6 ספרות? קוד ארוך להדבקה</summary>
+      <div class="flat" style="font-size:12px;margin-top:6px">הקוד הארוך לא פג ואפשר להשתמש בו שוב, עד ה״קוד חיבור חדש״ הבא. לא לשלוח אותו בקבוצה.</div>
+      <textarea id="connTxt" class="inp" dir="ltr" rows="3" readonly style="width:100%;font-size:11px;margin-top:6px">${esc(long)}</textarea>
+      <button class="btn" data-conncopy="1" style="margin-top:6px">להעתיק</button></details>`:""}
+      <div style="display:flex;gap:8px;justify-content:center"><button class="btn" data-qrclose="1">סגירה</button></div></div>`;
+    clearInterval(pinT);
+    const tickPin=()=>{const el=$("pinLeft");if(!el){clearInterval(pinT);return;}const s=Math.max(0,Math.round((c.exp-Date.now())/1000));
+      if(!s){clearInterval(pinT);const p=$("simPin");if(p){p.style.opacity=".35";p.style.textDecoration="line-through";}el.textContent="פג תוקף. ללחוץ שוב על ״קוד חיבור חדש״.";return;}
+      el.textContent=`תקף עוד ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;};
+    tickPin();pinT=setInterval(tickPin,1000);
+    /* החלון נסגר לבד כשהקוד פג, כדי שלא יישאר על המסך */
+    clearTimeout(connCloseT);connCloseT=setTimeout(()=>{if($("simPin"))$("qrBox")?.remove();},10*60000+15000);
+  }catch(e){const em=String(e?.cause?.message||e?.cause?.code||e?.message||"");
+    toast(/not_manager|permission/i.test(em)?"רק מנהל יכול ליצור קוד חיבור":/PGRST202|Could not find the function|does not exist/i.test(em)?"צריך לעדכן את מבנה הענן (גרסה 19)":/bad_event/.test(em)?"קוד התחרות לא תקין (עד 12 אותיות ומספרים באנגלית)":"יצירת הקוד נכשלה. לבדוק רשת");}
   finally{connBusy=false;btn.disabled=false;}
 }
 async function simConnOpen(btn){

@@ -134,5 +134,42 @@ select pg_temp.expect_fail($$select sim_read('','')$$,'empty token reads');
 select pg_temp.expect_fail($$select * from settings$$,'anon reads settings');
 reset role; set role authenticated;
 
+-- גרסה 19: קוד צימוד של 6 ספרות
+select pg_temp.as_user(:'s2');
+select pg_temp.expect_fail($$select set_sim_pair('Pair1234567890abcdefghijkl','123456','')$$,'scout sets pair code');
+select pg_temp.as_user(:'mgr');
+select pg_temp.expect_fail($$select set_sim_pair('Pair1234567890abcdefghijkl','12345','')$$,'5-digit pin');
+select pg_temp.expect_fail($$select set_sim_pair('Pair1234567890abcdefghijkl','12345a','')$$,'pin with a letter');
+select pg_temp.expect_fail($$select set_sim_pair('short','123456','')$$,'pair with short token');
+select pg_temp.expect_fail($$select set_sim_pair('Pair1234567890abcdefghijkl','123456','bad ev!')$$,'pair with bad event');
+select set_sim_pair('Pair1234567890abcdefghijkl','123456','ILCMP');
+reset role; set role anon;
+select pg_temp.expect_fail($$select * from sim_pairing$$,'anon reads sim_pairing');
+-- הספרות הוחלפו מיד: האסימון הקודם כבר לא עובד
+select pg_temp.expect_fail($$select sim_read('Tok1234567890abcdefghijklmn','')$$,'old token after new pair code');
+do $$ begin if sim_pair('000000')->>'error' <> 'bad_pin' then raise exception 'wrong pin accepted'; end if; end $$;
+do $$ declare r jsonb := sim_pair(' 123456 '); begin
+  if r->>'token' <> 'Pair1234567890abcdefghijkl' or r->>'event' <> 'ILCMP' then raise exception 'pair failed: %', r; end if; end $$;
+do $$ begin if sim_pair('123456')->>'error' <> 'expired' then raise exception 'pin works twice'; end if; end $$;
+do $$ begin if sim_read('Pair1234567890abcdefghijkl','') is null then raise exception 'paired token does not read'; end if; end $$;
+reset role; set role authenticated; select pg_temp.as_user(:'mgr');
+select set_sim_pair('Pair2234567890abcdefghijkl','654321','');
+reset role; set role anon;
+-- 10 טעויות שורפות את הקוד, גם אם הנכון מגיע אחריהן
+do $$ begin for i in 1..10 loop if sim_pair('11111'||(i%10))->>'error' <> 'bad_pin' then raise exception 'try % not bad_pin', i; end if; end loop; end $$;
+do $$ begin if sim_pair('654321')->>'error' <> 'expired' then raise exception 'pin works after 10 fails'; end if; end $$;
+reset role; set role authenticated; select pg_temp.as_user(:'mgr');
+select set_sim_pair('Pair3234567890abcdefghijkl','777777','');
+reset role; update sim_pairing set exp = now() - interval '1 second'; set role anon;
+do $$ begin if sim_pair('777777')->>'error' <> 'expired' then raise exception 'expired pin works'; end if; end $$;
+do $$ begin if sim_pair(null)->>'error' <> 'expired' then raise exception 'null pin'; end if; end $$;
+-- אסימון חדש בדרך הישנה מבטל ספרות שעוד לא נוצלו
+reset role; set role authenticated; select pg_temp.as_user(:'mgr');
+select set_sim_pair('Pair4234567890abcdefghijkl','888888','');
+select set_sim_token('Tok5234567890abcdefghijklmn');
+reset role; set role anon;
+do $$ begin if sim_pair('888888')->>'error' <> 'expired' then raise exception 'pin survives set_sim_token'; end if; end $$;
+reset role; set role authenticated;
+
 reset role;
 select 'ALL RLS TESTS PASSED' as result;

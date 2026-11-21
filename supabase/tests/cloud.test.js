@@ -144,6 +144,20 @@ async function until(fn,ms,label){const t0=Date.now();while(Date.now()-t0<ms){tr
   ok(await m.evaluate(()=>!Object.keys(localStorage).some(k=>/probe/.test(k))&&!JSON.stringify(localStorage).includes("pw-sim-9")),"conn code: nothing saved in the browser");
   ok((await q.query("select count(*)::int n from members where role='manager'")).rows[0].n===1&&await m.evaluate(()=>window.__CLOUD.status().mode!=="offline"),"conn code: manager stays signed in");
   await m.click("[data-qrclose]");
+  /* ── גרסה 19: קוד של 6 ספרות, בלי קיואר ── */
+  await m.click("[data-simtok]");ok(await until(async()=>(await m.textContent("[data-simtok]")).includes("יתנתק"),3000),"pin: first press only arms");
+  await m.click("[data-simtok]");
+  ok(await until(()=>m.$("#simPin"),6000),"pin: six digits shown");
+  const pinTxt=(await m.textContent("#simPin")).replace(/\D/g,"");
+  ok(/^\d{6}$/.test(pinTxt)&&!(await m.$("#qrBox svg")),"pin: 6 digits and no QR ("+pinTxt+")");
+  ok(/תקף עוד (9:5\d|10:00)/.test(await m.textContent("#pinLeft")),"pin: countdown from 10 minutes");
+  ok(!(await m.isVisible("#connTxt"))&&(await m.inputValue("#connTxt")).startsWith("A9662C:2:"),"pin: long code folded below");
+  const pair=async p=>(await (await fetch(`http://127.0.0.1:${PORT}/rest/v1/rpc/sim_pair`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin:p})})).json());
+  ok((await pair(pinTxt==="000000"?"111111":"000000")).error==="bad_pin","pin: wrong digits refused");
+  const pr=await pair(pinTxt);
+  ok(pr&&/^[A-Za-z0-9]{32}$/.test(pr.token||""),"pin: right digits give a read token");
+  ok((await pair(pinTxt)).error==="expired","pin: works once");
+  await m.click("[data-qrclose]");ok(!(await m.$("#qrBox")),"pin: dialog closes");
   /* ── איפוס סיסמה ── */
   const r1=await open();await until(()=>r1.isVisible("#cloudGate"),8000);
   await r1.click("#cgTabMgr");await r1.click("#cgForgot");await r1.fill("#cgRMail","mgr@example.test");await r1.click("#cgReset .cg-go");
